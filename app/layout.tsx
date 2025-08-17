@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     { rel: "icon", url: "/icon-192x192.png?v=2", sizes: "192x192", type: "image/png" },
     { rel: "icon", url: "/icon-512x512.png?v=2", sizes: "512x512", type: "image/png" },
     { rel: "apple-touch-icon", url: "/icon-192x192.png?v=2", sizes: "192x192" },
-    { rel: "shortcut icon", url: "/favicon.ico" },
+    { rel: "shortcut icon", url: "/favicon.ico?v=2" },
   ],
   openGraph: {
     type: "website",

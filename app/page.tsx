@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
 
@@ -49,6 +49,43 @@ export default function Home() {
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [showUserModal, setShowUserModal] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [isSwitchingUser, setIsSwitchingUser] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+
+    // Separate function to fetch members without currentUser dependency
+    const fetchMembers = useCallback(async () => {
+        try {
+            const { data, error } = await supabase.from('members').select('*').order('name', { ascending: true });
+            if (error) {
+                console.error("Error fetching members:", error);
+                return;
+            }
+            
+            setQuadMembers(data || []);
+        } catch (error) {
+            console.error("Error in fetchMembers:", error);
+        }
+    }, []);
+
+    // Separate function to update current user data from members list
+    const updateCurrentUserFromMembers = useCallback((members: Member[], currentUserId: string) => {
+        const updatedCurrentUser = members.find(member => member.id_member === currentUserId);
+        if (updatedCurrentUser) {
+            setCurrentUser(updatedCurrentUser);
+            // Update session storage with latest user data
+            if (typeof window !== 'undefined') {
+                sessionStorage.setItem('quadCurrentUser', JSON.stringify(updatedCurrentUser));
+            }
+        }
+    }, []);
+
+    // Update current user when members data changes (but not during user switching)
+    useEffect(() => {
+        if (currentUser && quadMembers.length > 0 && !isSwitchingUser) {
+            updateCurrentUserFromMembers(quadMembers, currentUser.id_member);
+        }
+    }, [quadMembers, currentUser?.id_member, isSwitchingUser, updateCurrentUserFromMembers]);
 
     useEffect(() => {
         if (!supabaseUrl || !supabaseAnonKey) {
@@ -57,38 +94,95 @@ export default function Home() {
             return;
         }
 
-        const fetchMembers = async () => {
-            const { data, error } = await supabase.from('members').select('*').order('name', { ascending: true });
-            if (error) console.error("Error fetching members:", error);
-            else setQuadMembers(data || []);
+        const initializeApp = async () => {
+            // Initial fetch
+            await fetchMembers();
+            setIsLoading(false);
+
+            // Set up real-time subscription
+            const channel = supabase
+                .channel('members-channel')
+                .on('postgres_changes', { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'members' 
+                }, (payload) => {
+                    console.log('Real-time update received:', payload);
+                    fetchMembers();
+                })
+                .subscribe((status) => {
+                    console.log('Subscription status:', status);
+                    setConnectionStatus(status === 'SUBSCRIBED' ? 'connected' : 
+                                     status === 'CLOSED' ? 'disconnected' : 'connecting');
+                });
+
+            // Load saved user from session storage
+            const savedUser = typeof window !== 'undefined' ? sessionStorage.getItem('quadCurrentUser') : null;
+            if (savedUser) {
+                try {
+                    const parsedUser = JSON.parse(savedUser);
+                    setCurrentUser(parsedUser);
+                } catch (error) {
+                    console.error("Error parsing saved user:", error);
+                    setShowUserModal(true);
+                }
+            } else {
+                setShowUserModal(true);
+            }
+
+            return () => {
+                console.log('Cleaning up subscription');
+                supabase.removeChannel(channel);
+            };
         };
 
-        fetchMembers();
-        setIsLoading(false);
-
-        const channel = supabase
-            .channel('members-channel')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, fetchMembers)
-            .subscribe();
-            
-        const savedUser = typeof window !== 'undefined' ? sessionStorage.getItem('quadCurrentUser') : null;
-        if(savedUser) {
-            setCurrentUser(JSON.parse(savedUser));
-        } else {
-            setShowUserModal(true);
-        }
+        const cleanup = initializeApp();
 
         return () => {
-            supabase.removeChannel(channel);
+            cleanup.then(cleanupFn => cleanupFn?.());
         };
-    }, []);
+    }, [fetchMembers]);
 
     const handleSetCurrentUser = (member: Member) => {
+        setIsSwitchingUser(true);
         setCurrentUser(member);
         if (typeof window !== 'undefined') {
             sessionStorage.setItem('quadCurrentUser', JSON.stringify(member));
         }
         setShowUserModal(false);
+        // Reset switching flag after a short delay to allow state to settle
+        setTimeout(() => setIsSwitchingUser(false), 100);
+    };
+
+    const handleStatusUpdate = async (statusKey: keyof typeof STATUS_OPTIONS) => {
+        if (!currentUser) return;
+        
+        setIsUpdatingStatus(true);
+        try {
+            const { error } = await supabase
+                .from('members')
+                .update({ 
+                    status: statusKey, 
+                    last_updated: new Date().toISOString() 
+                })
+                .eq('id_member', currentUser.id_member);
+                
+            if (error) {
+                console.error("Error updating status:", error);
+                alert("Failed to update status. Please try again.");
+                return;
+            }
+            
+            // Manually trigger a refresh as fallback
+            await fetchMembers();
+            setShowStatusModal(false);
+            
+        } catch (error) {
+            console.error("Error updating status:", error);
+            alert("Failed to update status. Please try again.");
+        } finally {
+            setIsUpdatingStatus(false);
+        }
     };
 
     if (isLoading) {
@@ -125,17 +219,49 @@ export default function Home() {
             </Head>
             <div className="bg-gray-900 text-white min-h-screen p-4 sm:p-8">
                 <header className="flex flex-wrap justify-between items-center mb-8 gap-4">
-                    <h1 className="text-4xl md:text-5xl font-bold">Quad Status</h1>
+                    <div>
+                        <h1 className="text-4xl md:text-5xl font-bold">Quad Status</h1>
+                        <div className="flex items-center mt-2">
+                            <div className={`w-2 h-2 rounded-full mr-2 ${
+                                connectionStatus === 'connected' ? 'bg-green-400' : 
+                                connectionStatus === 'connecting' ? 'bg-yellow-400' : 'bg-red-400'
+                            }`}></div>
+                            <span className="text-sm text-gray-400">
+                                {connectionStatus === 'connected' ? 'Connected' : 
+                                 connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+                            </span>
+                        </div>
+                    </div>
                     <div className="flex items-center space-x-4">
-                         <button onClick={() => setShowUserModal(true)} className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                         <button 
+                            onClick={() => setShowUserModal(true)} 
+                            disabled={isSwitchingUser}
+                            className={`flex items-center space-x-2 font-bold py-2 px-4 rounded-lg transition-colors ${
+                                isSwitchingUser 
+                                    ? 'bg-gray-700 opacity-50 cursor-not-allowed text-gray-400' 
+                                    : 'bg-gray-700 hover:bg-gray-600 text-white'
+                            }`}
+                        >
                             <UsersIcon />
-                            <span>{currentUser ? `Hi, ${currentUser.name}` : 'Select User'}</span>
+                            <span>
+                                {isSwitchingUser 
+                                    ? 'Switching...' 
+                                    : currentUser 
+                                        ? `Hi, ${currentUser.name}` 
+                                        : 'Select User'
+                                }
+                            </span>
                         </button>
                         <button 
                             onClick={() => currentUser ? setShowStatusModal(true) : setShowUserModal(true)} 
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                            className={`font-bold py-2 px-4 rounded-lg transition-colors ${
+                                isUpdatingStatus 
+                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                            }`}
+                            disabled={isUpdatingStatus}
                         >
-                            Update Status
+                            {isUpdatingStatus ? 'Updating...' : 'Update Status'}
                         </button>
                     </div>
                 </header>
@@ -151,8 +277,15 @@ export default function Home() {
                     )}
                 </main>
 
-                {showStatusModal && currentUser && <StatusUpdateModal currentUser={currentUser} onClose={() => setShowStatusModal(false)} />}
-                {showUserModal && <UserSelectionModal members={quadMembers} onSelectUser={handleSetCurrentUser} onClose={() => setShowUserModal(false)} />}
+                {showStatusModal && currentUser && (
+                    <StatusUpdateModal 
+                        currentUser={currentUser} 
+                        onClose={() => setShowStatusModal(false)}
+                        onStatusUpdate={handleStatusUpdate}
+                        isUpdating={isUpdatingStatus}
+                    />
+                )}
+                {showUserModal && <UserSelectionModal members={quadMembers} onSelectUser={handleSetCurrentUser} onClose={() => setShowUserModal(false)} isSwitchingUser={isSwitchingUser} />}
             </div>
         </>
     );
@@ -186,40 +319,78 @@ function StatusCard({ member }: { member: Member }) {
     );
 }
 
-function StatusUpdateModal({ currentUser, onClose }: { currentUser: Member; onClose: () => void }) {
-    const handleStatusUpdate = async (statusKey: keyof typeof STATUS_OPTIONS) => {
-        const { error } = await supabase
-            .from('members')
-            .update({ status: statusKey, last_updated: new Date().toISOString() })
-            .eq('id_member', currentUser.id_member);
-        if (error) console.error("Error updating status: ", error);
-        else onClose();
-    };
-
+function StatusUpdateModal({ 
+    currentUser, 
+    onClose, 
+    onStatusUpdate,
+    isUpdating 
+}: { 
+    currentUser: Member; 
+    onClose: () => void;
+    onStatusUpdate: (statusKey: keyof typeof STATUS_OPTIONS) => Promise<void>;
+    isUpdating: boolean;
+}) {
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-xl">
                 <h2 className="text-2xl font-bold text-center mb-6">What's your status, {currentUser.name}?</h2>
+                {isUpdating && (
+                    <div className="text-center mb-4">
+                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+                        <p className="text-sm text-gray-400 mt-2">Updating your status...</p>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {Object.entries(STATUS_OPTIONS).map(([key, { text, icon, color }]) => (
-                        <button key={key} onClick={() => handleStatusUpdate(key as keyof typeof STATUS_OPTIONS)} className={`flex items-center p-4 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600 ${color}`}>
+                        <button 
+                            key={key} 
+                            onClick={() => onStatusUpdate(key as keyof typeof STATUS_OPTIONS)} 
+                            disabled={isUpdating}
+                            className={`flex items-center p-4 rounded-lg text-left transition-colors ${
+                                isUpdating 
+                                    ? 'bg-gray-700 opacity-50 cursor-not-allowed' 
+                                    : 'bg-gray-700 hover:bg-indigo-600'
+                            } ${color}`}
+                        >
                             <div className="mr-4">{icon}</div>
                             <span className="text-lg font-semibold text-white">{text}</span>
                         </button>
                     ))}
                 </div>
-                <button onClick={onClose} className="mt-6 w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                <button 
+                    onClick={onClose} 
+                    disabled={isUpdating}
+                    className={`mt-6 w-full font-bold py-2 px-4 rounded-lg ${
+                        isUpdating 
+                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                            : 'bg-gray-600 hover:bg-gray-500 text-white'
+                    }`}
+                >
+                    Cancel
+                </button>
             </div>
         </div>
     );
 }
 
-function UserSelectionModal({ members, onSelectUser, onClose }: { members: Member[]; onSelectUser: (member: Member) => void; onClose: () => void }) {
+function UserSelectionModal({ 
+    members, 
+    onSelectUser, 
+    onClose, 
+    isSwitchingUser 
+}: { 
+    members: Member[]; 
+    onSelectUser: (member: Member) => void; 
+    onClose: () => void;
+    isSwitchingUser?: boolean;
+}) {
     const [newName, setNewName] = useState('');
     const [error, setError] = useState('');
 
     const handleAddMember = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSwitchingUser) return;
+        
         setError('');
         if (!newName.trim()) return setError("Name cannot be empty.");
         if (members.some(m => m.name.toLowerCase() === newName.trim().toLowerCase())) return setError("A member with this name already exists.");
@@ -236,24 +407,77 @@ function UserSelectionModal({ members, onSelectUser, onClose }: { members: Membe
         }
     };
 
+    const handleUserSelect = (member: Member) => {
+        if (isSwitchingUser) return;
+        onSelectUser(member);
+    };
+
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-xl">
                 <h2 className="text-2xl font-bold text-center mb-6">Who are you?</h2>
+                
+                {isSwitchingUser && (
+                    <div className="text-center mb-4">
+                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+                        <p className="text-sm text-gray-400 mt-2">Switching user...</p>
+                    </div>
+                )}
+                
                 <div className="space-y-2 max-h-48 overflow-y-auto mb-6">
                     {members.map(member => (
-                        <button key={member.id_member} onClick={() => onSelectUser(member)} className="w-full text-left p-3 bg-gray-700 hover:bg-indigo-600 rounded-lg transition-colors">{member.name}</button>
+                        <button 
+                            key={member.id_member} 
+                            onClick={() => handleUserSelect(member)} 
+                            disabled={isSwitchingUser}
+                            className={`w-full text-left p-3 rounded-lg transition-colors ${
+                                isSwitchingUser 
+                                    ? 'bg-gray-700 opacity-50 cursor-not-allowed' 
+                                    : 'bg-gray-700 hover:bg-indigo-600'
+                            }`}
+                        >
+                            {member.name}
+                        </button>
                     ))}
                 </div>
                 <div className="border-t border-gray-700 pt-4">
                     <h3 className="text-lg font-semibold text-center mb-3">Or, Add a New Roommate</h3>
                     <form onSubmit={handleAddMember} className="flex space-x-2">
-                        <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Enter your name" className="flex-grow p-3 bg-gray-700 rounded-lg border border-gray-600 focus:outline-none focus:border-indigo-500" />
-                        <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 p-3 rounded-lg"><UserPlusIcon /></button>
+                        <input 
+                            type="text" 
+                            value={newName} 
+                            onChange={(e) => setNewName(e.target.value)} 
+                            placeholder="Enter your name" 
+                            disabled={isSwitchingUser}
+                            className={`flex-grow p-3 bg-gray-700 rounded-lg border border-gray-600 focus:outline-none focus:border-indigo-500 ${
+                                isSwitchingUser ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                        />
+                        <button 
+                            type="submit" 
+                            disabled={isSwitchingUser}
+                            className={`p-3 rounded-lg ${
+                                isSwitchingUser 
+                                    ? 'bg-gray-600 opacity-50 cursor-not-allowed' 
+                                    : 'bg-indigo-600 hover:bg-indigo-500'
+                            }`}
+                        >
+                            <UserPlusIcon />
+                        </button>
                     </form>
                     {error && <p className="text-red-400 text-sm mt-2 text-center">{error}</p>}
                 </div>
-                <button onClick={onClose} className="mt-6 w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Close</button>
+                <button 
+                    onClick={onClose} 
+                    disabled={isSwitchingUser}
+                    className={`mt-6 w-full font-bold py-2 px-4 rounded-lg ${
+                        isSwitchingUser 
+                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                            : 'bg-gray-600 hover:bg-gray-500 text-white'
+                    }`}
+                >
+                    Close
+                </button>
             </div>
         </div>
     );

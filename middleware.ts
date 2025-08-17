@@ -24,8 +24,21 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   const startTime = Date.now();
   const { pathname } = req.nextUrl;
   const userAgent = req.headers.get('user-agent') || '';
+  const method = req.method;
   
   try {
+    // Always allow OPTIONS requests (CORS preflight)
+    if (method === 'OPTIONS') {
+      return new NextResponse(null, { 
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        }
+      });
+    }
+
     // Skip auth checks for public routes
     if (isPublicRoute(req)) {
       logAuthEvent('SUCCESS', pathname, 'Public route accessed');

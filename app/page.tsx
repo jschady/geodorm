@@ -4,40 +4,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { createClient, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-// --- ICONS (No changes here, they are fine) ---
-const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
-const BookOpenIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
-const DumbbellIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6.5 6.5 11 11"></path><path d="m21 21-1-1"></path><path d="m3 3 1 1"></path><path d="m18 22 4-4"></path><path d="m6 2 4 4"></path><path d="m3 10 7-7"></path><path d="m14 21 7-7"></path></svg>;
-const MoonIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>;
-const ArrowRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" x2="19" y1="12" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>;
-const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" x2="19" y1="8" y2="14"></line><line x1="22" x2="16" y1="11" y2="11"></line></svg>;
-const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+// Extracted components
+import StatusCard from './(dashboard)/(components)/status-card';
+import StatusUpdateModal from './(dashboard)/(components)/modals/status-update-modal';
+import UserSelectionModal from './(dashboard)/(components)/modals/user-selection-modal';
+import IOSInstallModal from './(dashboard)/(components)/modals/ios-install-modal';
 
-// --- Supabase Configuration ---
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase config is not set. Please update environment variables.');
-}
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// --- Status Options ---
-const STATUS_OPTIONS = {
-    'IN_ROOM': { text: 'In the Room', icon: <HomeIcon />, color: 'text-green-400' },
-    'STUDYING': { text: 'Studying / Class', icon: <BookOpenIcon />, color: 'text-blue-400' },
-    'AT_GYM': { text: 'At the Gym', icon: <DumbbellIcon />, color: 'text-orange-400' },
-    'SLEEPING': { text: 'Sleeping', icon: <MoonIcon />, color: 'text-purple-400' },
-    'AWAY': { text: 'Out & About', icon: <ArrowRightIcon />, color: 'text-gray-400' }
-};
-
-// --- Types ---
-interface Member {
-    id_member: string;
-    name: string;
-    status: keyof typeof STATUS_OPTIONS;
-    last_updated: string;
-}
+// Types and constants
+import { Member, StatusKey, ConnectionStatus } from './(dashboard)/(lib)/types';
+import { STATUS_OPTIONS, UsersIcon } from './(dashboard)/(lib)/constants';
+import supabase from './(dashboard)/(lib)/supabase-client';
 
 // --- Main App Component ---
 export default function Home() {
@@ -130,32 +106,31 @@ export default function Home() {
 
     // Main useEffect for initialization and subscriptions
     useEffect(() => {
-        if (!supabaseUrl || !supabaseAnonKey) {
-            console.warn("Supabase config is not set.");
-            setIsLoading(false);
-            return;
-        }
-
         const initializeApp = async () => {
-            // 1. Initial data fetch
-            const { data, error } = await supabase.from('members').select('*').order('name', { ascending: true });
-            if (error) {
-                console.error("Error fetching initial members:", error);
-            } else {
-                setQuadMembers(data || []);
-            }
-            setIsLoading(false);
-
-            // 2. Load user from session storage
-            const savedUser = sessionStorage.getItem('quadCurrentUser');
-            if (savedUser) {
-                try {
-                    setCurrentUser(JSON.parse(savedUser));
-                } catch (e) {
+            try {
+                // 1. Initial data fetch
+                const { data, error } = await supabase.from('members').select('*').order('name', { ascending: true });
+                if (error) {
+                    console.error("Error fetching initial members:", error);
+                } else {
+                    setQuadMembers(data || []);
+                }
+                
+                // 2. Load user from session storage
+                const savedUser = sessionStorage.getItem('quadCurrentUser');
+                if (savedUser) {
+                    try {
+                        setCurrentUser(JSON.parse(savedUser));
+                    } catch (e) {
+                        setShowUserModal(true);
+                    }
+                } else {
                     setShowUserModal(true);
                 }
-            } else {
-                setShowUserModal(true);
+            } catch (error) {
+                console.error("Error initializing app:", error);
+            } finally {
+                setIsLoading(false);
             }
         };
 
@@ -232,7 +207,7 @@ export default function Home() {
     };
 
     // Enhanced status update with offline support
-    const handleStatusUpdate = async (statusKey: keyof typeof STATUS_OPTIONS) => {
+    const handleStatusUpdate = async (statusKey: StatusKey) => {
         if (!currentUser) return;
         
         setIsUpdatingStatus(true);
@@ -332,19 +307,6 @@ export default function Home() {
             </div>
         );
     }
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-        return (
-             <div className="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4 text-center">
-                <Head>
-                    <title>Dorm Status - Setup Required</title>
-                </Head>
-                <h1 className="text-4xl font-bold text-yellow-400 mb-4">Configuration Needed</h1>
-                <p className="text-lg max-w-2xl">Welcome! To get started, set up environment variables for your Supabase project.</p>
-                 <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="mt-6 bg-yellow-500 text-gray-900 font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition-colors">Go to Supabase</a>
-            </div>
-        )
-    }
 
     return (
         <>
@@ -392,7 +354,7 @@ export default function Home() {
                                     : 'bg-gray-700 hover:bg-gray-600 text-white'
                             }`}
                         >
-                            <UsersIcon />
+                            {React.createElement(UsersIcon)}
                             <span>
                                 {isSwitchingUser 
                                     ? 'Switching...' 
@@ -443,268 +405,5 @@ export default function Home() {
                 )}
             </div>
         </>
-    );
-}
-
-// --- Sub-Components (No changes needed) ---
-
-function StatusCard({ member }: { member: Member }) {
-    const statusInfo = STATUS_OPTIONS[member.status] || STATUS_OPTIONS['AWAY'];
-    const formatTime = (timestamp: string) => {
-        if (!timestamp) return '...';
-        return new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    };
-
-    return (
-        <div className="bg-gray-800 rounded-2xl p-6 flex flex-col shadow-lg transform hover:scale-105 transition-transform duration-300">
-            <div className="flex items-center mb-4">
-                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mr-4">
-                    <span className="text-3xl font-bold">{member.name ? member.name.charAt(0) : '?'}</span>
-                </div>
-                <h3 className="text-2xl font-semibold truncate">{member.name}</h3>
-            </div>
-            <div className={`mt-auto flex items-center p-4 rounded-lg bg-gray-700/50 ${statusInfo.color}`}>
-                <div className="mr-3">{statusInfo.icon}</div>
-                <div>
-                    <p className="font-bold text-lg">{statusInfo.text}</p>
-                    <p className="text-sm text-gray-400">Updated at {formatTime(member.last_updated)}</p>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function StatusUpdateModal({ 
-    currentUser, 
-    onClose, 
-    onStatusUpdate,
-    isUpdating 
-}: { 
-    currentUser: Member; 
-    onClose: () => void;
-    onStatusUpdate: (statusKey: keyof typeof STATUS_OPTIONS) => Promise<void>;
-    isUpdating: boolean;
-}) {
-    return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-xl">
-                <h2 className="text-2xl font-bold text-center mb-6">What's your status, {currentUser.name}?</h2>
-                {isUpdating && (
-                    <div className="text-center mb-4">
-                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
-                        <p className="text-sm text-gray-400 mt-2">Updating your status...</p>
-                    </div>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {Object.entries(STATUS_OPTIONS).map(([key, { text, icon, color }]) => (
-                        <button 
-                            key={key} 
-                            onClick={() => onStatusUpdate(key as keyof typeof STATUS_OPTIONS)} 
-                            disabled={isUpdating}
-                            className={`flex items-center p-4 rounded-lg text-left transition-colors ${
-                                isUpdating 
-                                    ? 'bg-gray-700 opacity-50 cursor-not-allowed' 
-                                    : 'bg-gray-700 hover:bg-indigo-600'
-                            } ${color}`}
-                        >
-                            <div className="mr-4">{icon}</div>
-                            <span className="text-lg font-semibold text-white">{text}</span>
-                        </button>
-                    ))}
-                </div>
-                <button 
-                    onClick={onClose} 
-                    disabled={isUpdating}
-                    className={`mt-6 w-full font-bold py-2 px-4 rounded-lg ${
-                        isUpdating 
-                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                            : 'bg-gray-600 hover:bg-gray-500 text-white'
-                    }`}
-                >
-                    Cancel
-                </button>
-            </div>
-        </div>
-    );
-}
-
-function UserSelectionModal({ 
-    members, 
-    onSelectUser, 
-    onClose, 
-    isSwitchingUser 
-}: { 
-    members: Member[]; 
-    onSelectUser: (member: Member) => void; 
-    onClose: () => void;
-    isSwitchingUser?: boolean;
-}) {
-    const [newName, setNewName] = useState('');
-    const [error, setError] = useState('');
-
-    const handleAddMember = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (isSwitchingUser) return;
-        
-        setError('');
-        if (!newName.trim()) return setError("Name cannot be empty.");
-        if (members.some(m => m.name.toLowerCase() === newName.trim().toLowerCase())) return setError("A member with this name already exists.");
-
-        const { data, error: insertError } = await supabase
-            .from('members')
-            .insert([{ name: newName.trim(), status: 'AWAY', last_updated: new Date().toISOString() }])
-            .select();
-
-        if (insertError) {
-             setError(insertError.message);
-        } else if (data?.[0]) {
-            // After inserting, the real-time 'INSERT' event will add the user to the state.
-            // We just need to select them.
-            onSelectUser(data[0] as Member);
-            setNewName('');
-        }
-    };
-
-    const handleUserSelect = (member: Member) => {
-        if (isSwitchingUser) return;
-        onSelectUser(member);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-xl">
-                <h2 className="text-2xl font-bold text-center mb-6">Who are you?</h2>
-                
-                {isSwitchingUser && (
-                    <div className="text-center mb-4">
-                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
-                        <p className="text-sm text-gray-400 mt-2">Switching user...</p>
-                    </div>
-                )}
-                
-                <div className="space-y-2 max-h-48 overflow-y-auto mb-6">
-                    {members.map(member => (
-                        <button 
-                            key={member.id_member} 
-                            onClick={() => handleUserSelect(member)} 
-                            disabled={isSwitchingUser}
-                            className={`w-full text-left p-3 rounded-lg transition-colors ${
-                                isSwitchingUser 
-                                    ? 'bg-gray-700 opacity-50 cursor-not-allowed' 
-                                    : 'bg-gray-700 hover:bg-indigo-600'
-                            }`}
-                        >
-                            {member.name}
-                        </button>
-                    ))}
-                </div>
-                <div className="border-t border-gray-700 pt-4">
-                    <h3 className="text-lg font-semibold text-center mb-3">Or, Add a New Roommate</h3>
-                    <form onSubmit={handleAddMember} className="flex space-x-2">
-                        <input 
-                            type="text" 
-                            value={newName} 
-                            onChange={(e) => setNewName(e.target.value)} 
-                            placeholder="Enter your name" 
-                            disabled={isSwitchingUser}
-                            className={`flex-grow p-3 bg-gray-700 rounded-lg border border-gray-600 focus:outline-none focus:border-indigo-500 ${
-                                isSwitchingUser ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                        />
-                        <button 
-                            type="submit" 
-                            disabled={isSwitchingUser}
-                            className={`p-3 rounded-lg ${
-                                isSwitchingUser 
-                                    ? 'bg-gray-600 opacity-50 cursor-not-allowed' 
-                                    : 'bg-indigo-600 hover:bg-indigo-500'
-                            }`}
-                        >
-                            <UserPlusIcon />
-                        </button>
-                    </form>
-                    {error && <p className="text-red-400 text-sm mt-2 text-center">{error}</p>}
-                </div>
-                <button 
-                    onClick={onClose} 
-                    disabled={isSwitchingUser}
-                    className={`mt-6 w-full font-bold py-2 px-4 rounded-lg ${
-                        isSwitchingUser 
-                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                            : 'bg-gray-600 hover:bg-gray-500 text-white'
-                    }`}
-                >
-                    Close
-                </button>
-            </div>
-        </div>
-    );
-}
-
-// --- iOS Install Instructions Modal ---
-function IOSInstallModal({ onClose }: { onClose: () => void }) {
-    return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-xl">
-                <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold mb-2">📱 Install Dorm Status</h2>
-                    <p className="text-gray-400">Add this app to your home screen for easy access!</p>
-                </div>
-                
-                <div className="space-y-4 mb-6">
-                    <div className="flex items-start space-x-3">
-                        <div className="bg-indigo-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
-                        <div>
-                            <p className="text-white font-semibold">Tap the Share button</p>
-                            <p className="text-gray-400 text-sm">Look for the <span className="inline-block">📤</span> icon at the bottom of Safari</p>
-                        </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-3">
-                        <div className="bg-indigo-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
-                        <div>
-                            <p className="text-white font-semibold">Select "Add to Home Screen"</p>
-                            <p className="text-gray-400 text-sm">Scroll down in the share menu and tap <span className="inline-block">➕</span> "Add to Home Screen"</p>
-                        </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-3">
-                        <div className="bg-indigo-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
-                        <div>
-                            <p className="text-white font-semibold">Tap "Add"</p>
-                            <p className="text-gray-400 text-sm">Confirm the app name and tap "Add" in the top right</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="bg-indigo-900/50 rounded-lg p-4 mb-6">
-                    <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-indigo-400">✨</span>
-                        <p className="text-indigo-300 font-semibold">Why install?</p>
-                    </div>
-                    <ul className="text-sm text-indigo-200 space-y-1">
-                        <li>• Works offline with cached data</li>
-                        <li>• Faster loading from your home screen</li>
-                        <li>• No browser bars - just the app</li>
-                        <li>• Real-time notifications (coming soon)</li>
-                    </ul>
-                </div>
-                
-                <div className="flex space-x-3">
-                    <button 
-                        onClick={onClose}
-                        className="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                    >
-                        Maybe Later
-                    </button>
-                    <button 
-                        onClick={onClose}
-                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                    >
-                        Got It!
-                    </button>
-                </div>
-            </div>
-        </div>
     );
 }

@@ -55,29 +55,36 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 npm run dev  # Open localhost:3000
 ```
 
-## 🌐 Deploy
+## 📁 Project Structure
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
-
-Add your Supabase env vars and deploy!
-
-## 📁 Structure
+Built with **Next.js 15+ App Router** and organized using **route groups** for clean separation:
 
 ```
 app/
-├── layout.tsx                # Root layout
-├── page.tsx                 # Main dashboard
-└── (dashboard)/
-    ├── (components)/        # UI components
-    └── (lib)/              # Hooks & utilities
+├── layout.tsx                    # Root layout with metadata & providers
+├── page.tsx                     # Main dashboard (Client Component)
+├── globals.css                  # Global Tailwind styles
+└── (dashboard)/                 # Route group (doesn't affect URL)
+    ├── (components)/           # UI Components route group
+    │   ├── providers.tsx       # Client-side providers wrapper
+    │   ├── status-card.tsx     # Individual status display card
+    │   └── modals/            # Modal components directory
+    │       ├── status-update-modal.tsx   # Status selection modal
+    │       ├── user-selection-modal.tsx  # User picker modal
+    │       └── ios-install-modal.tsx     # PWA install guide
+    └── (lib)/                 # Core Logic route group
+        ├── supabase-client.ts  # Singleton Supabase client
+        ├── types.ts           # TypeScript interfaces
+        ├── constants.tsx      # Status options & icons
+        └── hooks/            # Custom React hooks
+            ├── use-pwa.ts     # PWA detection & functionality
+            └── use-realtime.ts # Real-time subscriptions
+
+public/
+├── manifest.json              # PWA manifest configuration
+├── sw.js                     # Service Worker for offline support
+└── icon-*.png               # PWA app icons (various sizes)
 ```
-
-## 🎯 Performance
-
-- **Lighthouse**: 95+ across all metrics
-- **Load Time**: < 2 seconds  
-- **Offline**: 24+ hours
-- **Real-time**: < 500ms latency
 
 ## 📄 License
 

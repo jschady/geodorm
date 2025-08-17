@@ -15,7 +15,8 @@ const nextConfig = {
           },
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            // TEMPORARILY DISABLED FOR TESTING - Change back to 'public, max-age=31536000, immutable' for production
+            value: 'no-cache, no-store, must-revalidate',
           },
         ],
       },
@@ -37,7 +38,8 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            // TEMPORARILY DISABLED FOR TESTING - Change back to 'public, max-age=31536000, immutable' for production
+            value: 'no-cache, no-store, must-revalidate',
           },
         ],
       },

@@ -6,8 +6,8 @@ const STATIC_CACHE = 'dorm-status-static-v2'; // Incremented to force cache refr
 const STATIC_FILES = [
   '/',
   '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png'
+  '/icon-192x192.png?v=2',
+  '/icon-512x512.png?v=2'
 ];
 
 // Install event - cache static files
@@ -154,15 +154,15 @@ self.addEventListener('push', (event) => {
   const data = event.data.json();
   const options = {
     body: data.body,
-    icon: '/icon-192x192.png',
-    badge: '/icon-192x192.png',
+    icon: '/icon-192x192.png?v=2',
+    badge: '/icon-192x192.png?v=2',
     vibrate: [200, 100, 200],
     data: data.data || {},
     actions: [
       {
         action: 'view',
         title: 'View Status',
-        icon: '/icon-192x192.png'
+        icon: '/icon-192x192.png?v=2'
       }
     ]
   };

@@ -1,4 +1,8 @@
 // Service Worker for Dorm Status PWA - Next.js 15+ Optimized
+
+// DEVELOPMENT FLAG - Set to true to disable all caching for testing
+const DISABLE_CACHE_FOR_TESTING = true; // Change to false to re-enable caching
+
 const CACHE_NAME = 'dorm-status-v3'; // Updated for Next.js 15+ optimizations
 const STATIC_CACHE = 'dorm-status-static-v3'; // Updated for Next.js 15+ optimizations
 const API_CACHE = 'dorm-status-api-v1';
@@ -29,6 +33,13 @@ const CACHE_STRATEGIES = {
 // Install event - cache static files
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing');
+  
+  if (DISABLE_CACHE_FOR_TESTING) {
+    console.log('Service Worker: Caching disabled for testing, skipping initial cache');
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
+  
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then(cache => {
@@ -74,6 +85,13 @@ self.addEventListener('fetch', (event) => {
 
   // Skip Chrome extensions
   if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') {
+    return;
+  }
+
+  // BYPASS CACHING FOR TESTING - Always fetch from network
+  if (DISABLE_CACHE_FOR_TESTING) {
+    console.log('Service Worker: Caching disabled for testing, fetching from network:', event.request.url);
+    event.respondWith(fetch(event.request));
     return;
   }
 

@@ -7,7 +7,7 @@ const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
 export async function POST(req: Request) {
   if (!WEBHOOK_SECRET) {
-    console.error('Missing WEBHOOK_SECRET environment variable');
+    console.error('Missing CLERK_WEBHOOK_SECRET environment variable');
     return new Response('Error: Missing webhook secret configuration', { 
       status: 500 
     });

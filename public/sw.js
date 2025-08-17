@@ -290,15 +290,15 @@ self.addEventListener('push', (event) => {
   const data = event.data.json();
   const options = {
     body: data.body,
-    icon: '/icon-192x192.png?v=2',
-    badge: '/icon-192x192.png?v=2',
+    icon: '/icon-192x192.png?v=3',
+    badge: '/icon-192x192.png?v=3',
     vibrate: [200, 100, 200],
     data: data.data || {},
     actions: [
       {
         action: 'view',
         title: 'View Status',
-        icon: '/icon-192x192.png?v=2'
+        icon: '/icon-192x192.png?v=3'
       }
     ]
   };

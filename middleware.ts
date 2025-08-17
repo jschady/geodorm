@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Route matchers for different protection levels
 const isPublicRoute = createRouteMatcher(["/", "/join", "/sign-in(.*)", "/sign-up(.*)"]);
 const isWebhookRoute = createRouteMatcher(["/api/webhooks/(.*)"]);
+const isPublicAPIRoute = createRouteMatcher(["/api/geofences/join/(.*)"]);
 const isAPIRoute = createRouteMatcher(["/api(.*)"]);
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/create(.*)"]);
 
@@ -48,6 +49,12 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     // Skip auth checks for webhook routes (they authenticate via webhook signatures)
     if (isWebhookRoute(req)) {
       logAuthEvent('SUCCESS', pathname, 'Webhook route accessed');
+      return NextResponse.next();
+    }
+
+    // Skip auth checks for public API routes (like invite validation)
+    if (isPublicAPIRoute(req)) {
+      logAuthEvent('SUCCESS', pathname, 'Public API route accessed');
       return NextResponse.next();
     }
 

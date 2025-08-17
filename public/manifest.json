@@ -10,30 +10,43 @@
   "categories": ["lifestyle", "social"],
   "lang": "en",
   "scope": "/",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192", 
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-256x256.png",
       "sizes": "256x256",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "/icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png", 
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
@@ -41,19 +54,21 @@
       "src": "/screenshot-wide.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "Dorm Status Dashboard on desktop"
     },
     {
-      "src": "/screenshot-narrow.png",
+      "src": "/screenshot-narrow.png", 
       "sizes": "375x812",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Dorm Status Dashboard on mobile"
     }
   ],
   "shortcuts": [
     {
       "name": "Update Status",
-      "short_name": "Status",
+      "short_name": "Status", 
       "description": "Quick update your status",
       "url": "/?action=update-status",
       "icons": [

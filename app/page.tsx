@@ -13,7 +13,7 @@ import IOSInstallModal from './(dashboard)/(components)/modals/ios-install-modal
 // Types and constants
 import { Member, StatusKey, ConnectionStatus } from './(dashboard)/(lib)/types';
 import { STATUS_OPTIONS, UsersIcon } from './(dashboard)/(lib)/constants';
-import supabase from './(dashboard)/(lib)/supabase-client';
+import { supabaseService } from './(dashboard)/(lib)/supabase-client';
 
 // --- Main App Component ---
 export default function Home() {
@@ -109,12 +109,8 @@ export default function Home() {
         const initializeApp = async () => {
             try {
                 // 1. Initial data fetch
-                const { data, error } = await supabase.from('members').select('*').order('name', { ascending: true });
-                if (error) {
-                    console.error("Error fetching initial members:", error);
-                } else {
-                    setQuadMembers(data || []);
-                }
+                const data = await supabaseService.getMembers();
+                setQuadMembers(data);
                 
                 // 2. Load user from session storage
                 const savedUser = sessionStorage.getItem('quadCurrentUser');
@@ -137,24 +133,20 @@ export default function Home() {
         initializeApp();
 
         // **MODIFIED**: Set up real-time subscription with the new handler
-        const channel = supabase
-            .channel('members-channel')
-            .on<Member>(
-                'postgres_changes', 
-                { event: '*', schema: 'public', table: 'members' }, 
-                handleRealtimeUpdate
-            )
-            .subscribe((status) => {
-                console.log('Subscription status:', status);
-                if (status === 'SUBSCRIBED') setConnectionStatus('connected');
-                else if (status === 'CLOSED') setConnectionStatus('disconnected');
-                else setConnectionStatus('connecting');
-            });
+        const channel = supabaseService.subscribeToMembers(handleRealtimeUpdate);
+        
+        // Listen to subscription status changes
+        channel.subscribe((status) => {
+            console.log('Subscription status:', status);
+            if (status === 'SUBSCRIBED') setConnectionStatus('connected');
+            else if (status === 'CLOSED') setConnectionStatus('disconnected');
+            else setConnectionStatus('connecting');
+        });
 
         // Cleanup function
         return () => {
             console.log('Cleaning up subscription');
-            supabase.removeChannel(channel);
+            supabaseService.removeChannel(channel);
         };
     }, []); // Empty dependency array ensures this runs only once
 
@@ -240,19 +232,12 @@ export default function Home() {
                 return;
             }
 
-            const { error } = await supabase
-                .from('members')
-                .update({ 
-                    status: statusKey, 
-                    last_updated: new Date().toISOString() 
-                })
-                .eq('id_member', currentUser.id_member);
-                
-            if (error) {
-                console.error("Error updating status:", error);
-                alert("Failed to update status. Please try again.");
-            } else {
+            try {
+                await supabaseService.updateMemberStatus(currentUser.id_member, statusKey);
                 setShowStatusModal(false);
+            } catch (serviceError) {
+                console.error("Error updating status via service:", serviceError);
+                alert("Failed to update status. Please try again.");
             }
         } catch (error) {
             console.error("Error in handleStatusUpdate:", error);
@@ -274,13 +259,7 @@ export default function Home() {
             
             try {
                 for (const update of pending) {
-                    await supabase
-                        .from('members')
-                        .update({ 
-                            status: update.status, 
-                            last_updated: update.timestamp 
-                        })
-                        .eq('id_member', update.userId);
+                    await supabaseService.updateMemberStatus(update.userId, update.status);
                 }
                 
                 localStorage.removeItem('pendingUpdates');

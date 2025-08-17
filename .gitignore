@@ -47,3 +47,5 @@ next-env.d.ts
 *.swo 
 
 /.git/bfg-report/
+/.cursor/
+/.ai/

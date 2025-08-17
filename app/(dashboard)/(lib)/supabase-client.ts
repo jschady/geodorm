@@ -139,7 +139,7 @@ export class SupabaseService {
   /**
    * Subscribe to real-time changes on members table
    */
-  subscribeToMembers(callback: (payload: any) => void) {
+  subscribeToMembers(callback: (payload: any) => void, statusCallback?: (status: string) => void) {
     return this.client
       .channel('members-channel')
       .on<any>(
@@ -149,6 +149,9 @@ export class SupabaseService {
       )
       .subscribe((status) => {
         console.log('Real-time subscription status:', status);
+        if (statusCallback) {
+          statusCallback(status);
+        }
       });
   }
 

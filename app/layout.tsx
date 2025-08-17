@@ -1,7 +1,8 @@
 import React from "react";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "../styles/globals.css";
+import "./globals.css";
+import Providers from "./(dashboard)/(components)/providers";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -14,27 +15,50 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: "Dorm Status Dashboard",
   description: "Real-time status tracking dashboard for dorm roommates",
+  applicationName: "Dorm Status",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Dorm Status",
+    startupImage: [
+      {
+        url: "/icon-512x512.png",
+        media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
+      },
+    ],
   },
   formatDetection: {
     telephone: false,
   },
+  icons: [
+    { rel: "icon", url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    { rel: "icon", url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    { rel: "apple-touch-icon", url: "/icon-192x192.png", sizes: "192x192" },
+    { rel: "shortcut icon", url: "/favicon.ico" },
+  ],
   openGraph: {
     type: "website",
     siteName: "Dorm Status Dashboard",
     title: "Dorm Status Dashboard",
     description: "Real-time status tracking dashboard for dorm roommates",
+    images: [
+      {
+        url: "/icon-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "Dorm Status Dashboard",
+      },
+    ],
   },
   twitter: {
     card: "summary",
     title: "Dorm Status Dashboard",
     description: "Real-time status tracking dashboard for dorm roommates",
+    images: ["/icon-512x512.png"],
   },
 };
 
@@ -43,6 +67,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  minimumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -53,90 +80,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* PWA Meta Tags */}
-        <meta name="application-name" content="Dorm Status" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Dorm Status" />
-        <meta name="description" content="Real-time status tracking dashboard for dorm roommates" />
-        <meta name="format-detection" content="telephone=no" />
+        {/* Additional PWA Meta Tags not handled by metadata API */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/icons/browserconfig.xml" />
         <meta name="msapplication-TileColor" content="#4f46e5" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <meta name="theme-color" content="#4f46e5" />
-
-        {/* Icons */}
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icon-192x192.png?v=2" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png?v=2" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/icon-192x192.png?v=2" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/icon-192x192.png?v=2" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/icon-192x192.png?v=2" />
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="mask-icon" href="/icon-192x192.png?v=2" color="#4f46e5" />
-        <link rel="shortcut icon" href="/favicon.ico" />
-
-        {/* Splash Screens for iOS */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <link 
-          rel="apple-touch-startup-image" 
-          href="/icon-512x512.png?v=2" 
-          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" 
-        />
       </head>
       <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
-        {children}
-        
-        {/* Service Worker Registration */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                    .then(function(registration) {
-                      console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
-                    });
-                });
-              }
-
-              // Handle install prompt
-              let deferredPrompt;
-              window.addEventListener('beforeinstallprompt', (e) => {
-                console.log('beforeinstallprompt fired');
-                e.preventDefault();
-                deferredPrompt = e;
-                
-                // Show install button (you can add this to your UI later)
-                const installButton = document.getElementById('install-button');
-                if (installButton) {
-                  installButton.style.display = 'block';
-                  installButton.addEventListener('click', () => {
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then((choiceResult) => {
-                      if (choiceResult.outcome === 'accepted') {
-                        console.log('User accepted the A2HS prompt');
-                      } else {
-                        console.log('User dismissed the A2HS prompt');
-                      }
-                      deferredPrompt = null;
-                      installButton.style.display = 'none';
-                    });
-                  });
-                }
-              });
-
-              // Handle successful installation
-              window.addEventListener('appinstalled', (evt) => {
-                console.log('App installed');
-              });
-            `,
-          }}
-        />
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

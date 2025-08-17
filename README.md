@@ -20,16 +20,6 @@ A real-time status tracking dashboard for dorm roommates built with Next.js, Typ
 - **Database**: Supabase (PostgreSQL)
 - **Hosting**: Vercel
 
-## What's New in Next.js 15
-
-This project leverages the latest features from Next.js 15:
-
-- **React 19 Support**: Latest React features including improved concurrent rendering
-- **Turbopack**: Enhanced development server performance (opt-in via `--turbo` flag)
-- **Enhanced Caching**: Improved caching strategies for better performance
-- **Better TypeScript Support**: Enhanced type checking and IntelliSense
-- **Improved Error Handling**: Better error boundaries and debugging experience
-
 ## Quick Start
 
 ### 1. Clone and Install Dependencies
@@ -89,22 +79,6 @@ Open [http://localhost:3000](http://localhost:3000) to see your app.
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 6. Click "Deploy"
-
-### Option 2: Deploy via Vercel CLI
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-
-# Follow the prompts and add environment variables when asked
-```
-
-### Option 3: One-Click Deploy
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/dorm-status&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
 ## Supabase Setup Details
 

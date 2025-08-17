@@ -50,53 +50,34 @@ export default function Home() {
     const [isSwitchingUser, setIsSwitchingUser] = useState(false);
     const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     const [isOnline, setIsOnline] = useState(true);
-    const [showInstallPrompt, setShowInstallPrompt] = useState(false);
     const [showIOSInstall, setShowIOSInstall] = useState(false);
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
     // Detect if user is on iOS
     const isIOS = () => {
-        return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (typeof window === 'undefined') return false;
+        
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        const platform = window.navigator.platform.toLowerCase();
+        
+        return /ipad|iphone|ipod/.test(userAgent) || 
+               /ipad|iphone|ipod/.test(platform) ||
+               (platform === 'macintel' && navigator.maxTouchPoints > 1);
     };
 
     // Detect if app is already installed (running in standalone mode)
     const isStandalone = () => {
+        if (typeof window === 'undefined') return false;
+        
         return window.matchMedia('(display-mode: standalone)').matches ||
                (window.navigator as any).standalone === true;
     };
 
-    // Handle PWA installation
+    // Show iOS install instructions
     useEffect(() => {
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-            setShowInstallPrompt(true);
-        };
-
-        const handleAppInstalled = () => {
-            console.log('PWA installed');
-            setShowInstallPrompt(false);
-            setShowIOSInstall(false);
-            setDeferredPrompt(null);
-        };
-
-        // Check if we should show iOS install instructions
-        const checkIOSInstall = () => {
-            if (isIOS() && !isStandalone()) {
-                // Show iOS install after a short delay to let page load
-                setTimeout(() => setShowIOSInstall(true), 2000);
-            }
-        };
-
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        window.addEventListener('appinstalled', handleAppInstalled);
-        checkIOSInstall();
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-            window.removeEventListener('appinstalled', handleAppInstalled);
-        };
+        if (isIOS() && !isStandalone()) {
+            // Show iOS install after a short delay to let page load
+            setTimeout(() => setShowIOSInstall(true), 2000);
+        }
     }, []);
 
     // Handle online/offline status
@@ -121,20 +102,6 @@ export default function Home() {
             window.removeEventListener('offline', handleOffline);
         };
     }, []);
-
-    const handleInstallClick = async () => {
-        if (!deferredPrompt) return;
-        
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        
-        if (outcome === 'accepted') {
-            console.log('User accepted install');
-        }
-        
-        setDeferredPrompt(null);
-        setShowInstallPrompt(false);
-    };
 
     // **NEW**: Handle incoming real-time updates directly
     const handleRealtimeUpdate = (payload: RealtimePostgresChangesPayload<Member>) => {
@@ -405,12 +372,12 @@ export default function Home() {
                                 </span>
                             </div>
                             
-                            {(showInstallPrompt || showIOSInstall) && !isStandalone() && (
+                            {showIOSInstall && (
                                 <button
-                                    onClick={() => showInstallPrompt ? handleInstallClick() : setShowIOSInstall(false)}
+                                    onClick={() => {}} // Modal shows automatically, button is just visual indicator
                                     className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded-lg transition-colors"
                                 >
-                                    📱 <span>{showIOSInstall ? 'Install Guide' : 'Install App'}</span>
+                                    📱 <span>Install Guide</span>
                                 </button>
                             )}
                         </div>

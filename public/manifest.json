@@ -49,22 +49,6 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Dorm Status Dashboard on desktop"
-    },
-    {
-      "src": "/screenshot-narrow.png", 
-      "sizes": "375x812",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Dorm Status Dashboard on mobile"
-    }
-  ],
   "shortcuts": [
     {
       "name": "Update Status",

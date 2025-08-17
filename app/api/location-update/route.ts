@@ -11,6 +11,22 @@ import type {
   ValidationResult 
 } from '../lib/location-types';
 
+import { 
+  determineStatusChange, 
+  validateCoordinates,
+  type Coordinates,
+  type GeofenceResult
+} from '../lib/geofence';
+
+import {
+  lookupDeviceMapping,
+  getGeofenceConfig,
+  getCurrentMemberStatus,
+  updateMemberStatus,
+  updateDeviceLastSeen,
+  type LocationProcessingResult
+} from '../lib/database';
+
 // Environment variables (for future database integration)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -184,6 +200,142 @@ function extractDeviceIds(request: OverlandRequest): string[] {
 }
 
 /**
+ * Process location update for a single device with geofencing logic
+ */
+async function processDeviceLocation(
+  deviceId: string, 
+  location: { latitude: number; longitude: number; timestamp: string },
+  requestId: string
+): Promise<LocationProcessingResult> {
+  const result: LocationProcessingResult = {
+    device_id: deviceId,
+    user_found: false,
+    geofence_applied: false,
+    status_changed: false
+  };
+
+  try {
+    // Step 1: Look up device mapping
+    logMessage('info', `Looking up device mapping for ${deviceId}`, {}, requestId);
+    const deviceLookup = await lookupDeviceMapping(deviceId);
+    
+    if (!deviceLookup.success) {
+      result.error = deviceLookup.error;
+      return result;
+    }
+
+    if (!deviceLookup.data) {
+      logMessage('warn', `No device mapping found for device ${deviceId}`, {}, requestId);
+      result.error = 'Device mapping not found';
+      return result;
+    }
+
+    result.user_found = true;
+    result.user_id = deviceLookup.data.id_member;
+
+    // Step 2: Get geofence configuration
+    const geofenceConfig = await getGeofenceConfig(deviceLookup.data.dorm_name);
+    
+    if (!geofenceConfig.success) {
+      result.error = geofenceConfig.error;
+      return result;
+    }
+
+    if (!geofenceConfig.data) {
+      logMessage('warn', `No geofence configuration found`, { dorm: deviceLookup.data.dorm_name }, requestId);
+      result.error = 'Geofence configuration not found';
+      return result;
+    }
+
+    // Step 3: Get current member status for hysteresis logic
+    const memberStatus = await getCurrentMemberStatus(result.user_id);
+    
+    if (!memberStatus.success) {
+      result.error = memberStatus.error;
+      return result;
+    }
+
+    if (!memberStatus.data) {
+      logMessage('warn', `Member not found: ${result.user_id}`, {}, requestId);
+      result.error = 'Member not found';
+      return result;
+    }
+
+    result.old_status = memberStatus.data.status;
+
+    // Step 4: Apply geofencing logic
+    const coordinates: Coordinates = {
+      latitude: location.latitude,
+      longitude: location.longitude
+    };
+
+    const geofenceResult: GeofenceResult = determineStatusChange(
+      coordinates,
+      geofenceConfig.data,
+      memberStatus.data.status as 'IN_ROOM' | 'AWAY'
+    );
+
+    result.geofence_applied = true;
+    result.distance_meters = geofenceResult.distance_meters;
+    result.calculation_time_ms = geofenceResult.calculation_time_ms;
+
+    logMessage('info', `Geofence calculation completed`, {
+      device_id: deviceId,
+      user_id: result.user_id,
+      distance: Math.round(geofenceResult.distance_meters),
+      inside_boundary: geofenceResult.inside_boundary,
+      should_change: geofenceResult.status_should_change,
+      hysteresis_applied: geofenceResult.hysteresis_applied
+    }, requestId);
+
+    // Step 5: Update status if needed
+    if (geofenceResult.status_should_change && geofenceResult.new_status) {
+      const updateResult = await updateMemberStatus(
+        result.user_id,
+        geofenceResult.new_status,
+        location.timestamp
+      );
+
+      if (!updateResult.success) {
+        result.error = updateResult.error;
+        return result;
+      }
+
+      result.status_changed = true;
+      result.new_status = geofenceResult.new_status;
+
+      logMessage('info', `Status updated successfully`, {
+        device_id: deviceId,
+        user_id: result.user_id,
+        old_status: result.old_status,
+        new_status: result.new_status,
+        distance: Math.round(geofenceResult.distance_meters)
+      }, requestId);
+    } else {
+      logMessage('info', `No status change needed`, {
+        device_id: deviceId,
+        user_id: result.user_id,
+        current_status: result.old_status,
+        distance: Math.round(geofenceResult.distance_meters),
+        hysteresis_applied: geofenceResult.hysteresis_applied
+      }, requestId);
+    }
+
+    // Step 6: Update device last seen timestamp
+    await updateDeviceLastSeen(deviceId);
+
+    return result;
+  } catch (error) {
+    result.error = `Processing error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    logMessage('error', `Device processing failed`, {
+      device_id: deviceId,
+      error: result.error
+    }, requestId);
+    return result;
+  }
+}
+
+/**
  * POST handler for location updates
  */
 export async function POST(request: NextRequest) {
@@ -252,43 +404,66 @@ export async function POST(request: NextRequest) {
     // Extract processing information
     const locationCount = overlandRequest.locations.length;
     const deviceIds = extractDeviceIds(overlandRequest);
-    const processingTime = Date.now() - startTime;
     
-    logMessage('info', 'Processing location data', {
+    logMessage('info', 'Processing location data with geofencing', {
       location_count: locationCount,
       device_ids: deviceIds,
-      processing_time_ms: processingTime
+      unique_devices: deviceIds.length
     }, requestId);
 
-    // Log location details (for development/debugging)
-    overlandRequest.locations.forEach((location, index) => {
-      const [lon, lat] = location.geometry.coordinates;
-      logMessage('info', `Location ${index + 1}`, {
-        device_id: location.properties.device_id,
-        coordinates: { latitude: lat, longitude: lon },
+    // Process each location with geofencing logic
+    const processingResults: LocationProcessingResult[] = [];
+    let statusUpdatesCount = 0;
+
+    for (const location of overlandRequest.locations) {
+      const [longitude, latitude] = location.geometry.coordinates;
+      const deviceId = location.properties.device_id;
+
+      // Log location details
+      logMessage('info', `Processing location for device ${deviceId}`, {
+        coordinates: { latitude, longitude },
         timestamp: location.properties.timestamp,
         accuracy: location.properties.horizontal_accuracy,
         motion: location.properties.motion,
         battery_level: location.properties.battery_level
       }, requestId);
-    });
 
-    // For this story, we just log and acknowledge - no actual geofencing yet
-    // Future stories will add database lookups and geofencing calculations here
+      // Process this location with geofencing
+      const result = await processDeviceLocation(
+        deviceId,
+        { latitude, longitude, timestamp: location.properties.timestamp },
+        requestId
+      );
+
+      processingResults.push(result);
+      
+      if (result.status_changed) {
+        statusUpdatesCount++;
+      }
+    }
 
     const finalProcessingTime = Date.now() - startTime;
     
-    logMessage('info', 'Location processing completed successfully', {
+    // Count successful vs failed processing
+    const successfulResults = processingResults.filter(r => !r.error);
+    const failedResults = processingResults.filter(r => r.error);
+
+    logMessage('info', 'Location processing completed', {
       processed_count: locationCount,
+      successful_count: successfulResults.length,
+      failed_count: failedResults.length,
+      status_updates_made: statusUpdatesCount,
       total_processing_time_ms: finalProcessingTime
     }, requestId);
 
-    // Return successful response (required format for Overland GPS app)
+    // Return enhanced response with processing results
     return NextResponse.json({
       result: 'ok',
-      message: 'Location data received and logged',
-      processed_count: locationCount
-    } as LocationProcessingResponse);
+      message: `Processed ${locationCount} locations, made ${statusUpdatesCount} status updates`,
+      processed_count: locationCount,
+      status_updates_made: statusUpdatesCount,
+      processing_results: processingResults
+    });
 
   } catch (error) {
     const processingTime = Date.now() - startTime;

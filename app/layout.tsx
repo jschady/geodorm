@@ -16,14 +16,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
-  title: "Dorm Status Dashboard",
+  title: "Tiger Dorm Dashboard",
   description: "Real-time status tracking dashboard for dorm roommates",
-  applicationName: "Dorm Status",
+  applicationName: "Tiger Dorm",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Dorm Status",
+    title: "Tiger Dorm",
     startupImage: [
       {
         url: "/icon-512x512.png?v=2",
@@ -42,21 +42,21 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: "website",
-    siteName: "Dorm Status Dashboard",
-    title: "Dorm Status Dashboard",
+    siteName: "Tiger Dorm Dashboard",
+    title: "Tiger Dorm Dashboard",
     description: "Real-time status tracking dashboard for dorm roommates",
     images: [
       {
         url: "/icon-512x512.png?v=2",
         width: 512,
         height: 512,
-        alt: "Dorm Status Dashboard",
+        alt: "Tiger Dorm Dashboard",
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "Dorm Status Dashboard",
+    title: "Tiger Dorm Dashboard",
     description: "Real-time status tracking dashboard for dorm roommates",
     images: ["/icon-512x512.png?v=2"],
   },

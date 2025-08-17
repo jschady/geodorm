@@ -1,11 +1,11 @@
-// Service Worker for Dorm Status PWA - Next.js 15+ Optimized
+// Service Worker for Tiger Dorm PWA - Next.js 15+ Optimized
 
 // DEVELOPMENT FLAG - Set to true to disable all caching for testing
 const DISABLE_CACHE_FOR_TESTING = true; // Change to false to re-enable caching
 
-const CACHE_NAME = 'dorm-status-v3'; // Updated for Next.js 15+ optimizations
-const STATIC_CACHE = 'dorm-status-static-v3'; // Updated for Next.js 15+ optimizations
-const API_CACHE = 'dorm-status-api-v1';
+const CACHE_NAME = 'tigerdorm-v3'; // Updated for Next.js 15+ optimizations
+const STATIC_CACHE = 'tigerdorm-static-v3'; // Updated for Next.js 15+ optimizations
+const API_CACHE = 'tigerdorm-api-v1';
 
 // Files to cache for offline functionality
 const STATIC_FILES = [
@@ -204,7 +204,7 @@ function getOfflinePage() {
     `<!DOCTYPE html>
     <html lang="en">
     <head>
-      <title>Dorm Status - Offline</title>
+      <title>TigerDorm - Offline</title>
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="theme-color" content="#4f46e5">
       <style>
@@ -252,7 +252,7 @@ function getOfflinePage() {
         <div class="icon">📱</div>
         <h1>You're Offline</h1>
         <p><span class="status-indicator"></span>No internet connection</p>
-        <p>Dorm Status needs an internet connection to sync status updates in real-time.</p>
+        <p>TigerDorm needs an internet connection to sync status updates in real-time.</p>
         <p>Your cached data is still available, but updates won't sync until you're back online.</p>
         <button class="retry-btn" onclick="window.location.reload()">Try Again</button>
       </div>
@@ -304,7 +304,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Dorm Status', options)
+    self.registration.showNotification(data.title || 'TigerDorm', options)
   );
 });
 

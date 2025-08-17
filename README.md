@@ -1,4 +1,4 @@
-# 🏠 Dorm Status Dashboard
+# 🏠 Tiger Dorm  Dashboard
 
 > A beautiful, real-time status tracking PWA for dorm roommates built with Next.js 15+ and modern architecture
 
@@ -28,7 +28,7 @@
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/jschady/dorm-status && cd dorm-status && npm install
+git clone https://github.com/jschady/tigerdorm && cd tigerdorm && npm install
 ```
 
 **Supabase Setup:**

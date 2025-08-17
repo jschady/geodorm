@@ -280,7 +280,7 @@ export default function Home() {
          return (
             <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center">
                 <Head>
-                    <title>Dorm Status - Loading</title>
+                    <title>Tiger Dorm - Loading</title>
                 </Head>
                 <p className="text-2xl animate-pulse">Loading Dashboard...</p>
             </div>
@@ -290,7 +290,7 @@ export default function Home() {
     return (
         <>
             <Head>
-                <title>Dorm Status Dashboard</title>
+                <title>Tiger Dorm Dashboard</title>
                 <meta name="description" content="Real-time status dashboard for dorm roommates" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.ico" />

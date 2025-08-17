@@ -8,7 +8,7 @@ export default function IOSInstallModal({ onClose }: IOSInstallModalProps) {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-xl">
                 <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold mb-2">📱 Install Dorm Status</h2>
+                    <h2 className="text-2xl font-bold mb-2">📱 Install Tiger Dorm</h2>
                     <p className="text-gray-400">Add this app to your home screen for easy access!</p>
                 </div>
                 

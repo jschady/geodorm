@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     title: "Dorm Status",
     startupImage: [
       {
-        url: "/icon-512x512.png",
+        url: "/icon-512x512.png?v=2",
         media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
       },
     ],
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: [
-    { rel: "icon", url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
-    { rel: "icon", url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
-    { rel: "apple-touch-icon", url: "/icon-192x192.png", sizes: "192x192" },
+    { rel: "icon", url: "/icon-192x192.png?v=2", sizes: "192x192", type: "image/png" },
+    { rel: "icon", url: "/icon-512x512.png?v=2", sizes: "512x512", type: "image/png" },
+    { rel: "apple-touch-icon", url: "/icon-192x192.png?v=2", sizes: "192x192" },
     { rel: "shortcut icon", url: "/favicon.ico" },
   ],
   openGraph: {
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     description: "Real-time status tracking dashboard for dorm roommates",
     images: [
       {
-        url: "/icon-512x512.png",
+        url: "/icon-512x512.png?v=2",
         width: 512,
         height: 512,
         alt: "Dorm Status Dashboard",
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Dorm Status Dashboard",
     description: "Real-time status tracking dashboard for dorm roommates",
-    images: ["/icon-512x512.png"],
+    images: ["/icon-512x512.png?v=2"],
   },
 };
 

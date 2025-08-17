@@ -132,16 +132,16 @@ export default function Home() {
 
         initializeApp();
 
-        // **MODIFIED**: Set up real-time subscription with the new handler
-        const channel = supabaseService.subscribeToMembers(handleRealtimeUpdate);
-        
-        // Listen to subscription status changes
-        channel.subscribe((status) => {
-            console.log('Subscription status:', status);
-            if (status === 'SUBSCRIBED') setConnectionStatus('connected');
-            else if (status === 'CLOSED') setConnectionStatus('disconnected');
-            else setConnectionStatus('connecting');
-        });
+        // **MODIFIED**: Set up real-time subscription with the new handler and status callback
+        const channel = supabaseService.subscribeToMembers(
+            handleRealtimeUpdate,
+            (status) => {
+                console.log('Subscription status:', status);
+                if (status === 'SUBSCRIBED') setConnectionStatus('connected');
+                else if (status === 'CLOSED') setConnectionStatus('disconnected');
+                else setConnectionStatus('connecting');
+            }
+        );
 
         // Cleanup function
         return () => {

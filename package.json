@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pwa:build": "next build && npm run pwa:generate-sw",
+    "pwa:generate-sw": "echo 'Service worker already included in public/sw.js'",
+    "test:pwa": "npm run build && npm run start"
   },
   "dependencies": {
     "react": "^19.0.0",

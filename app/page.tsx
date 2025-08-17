@@ -49,6 +49,69 @@ export default function Home() {
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [isSwitchingUser, setIsSwitchingUser] = useState(false);
     const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+    const [isOnline, setIsOnline] = useState(true);
+    const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    // Handle PWA installation
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e: Event) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+            setShowInstallPrompt(true);
+        };
+
+        const handleAppInstalled = () => {
+            console.log('PWA installed');
+            setShowInstallPrompt(false);
+            setDeferredPrompt(null);
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.addEventListener('appinstalled', handleAppInstalled);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+            window.removeEventListener('appinstalled', handleAppInstalled);
+        };
+    }, []);
+
+    // Handle online/offline status
+    useEffect(() => {
+        const handleOnline = () => {
+            setIsOnline(true);
+            console.log('Back online');
+        };
+        
+        const handleOffline = () => {
+            setIsOnline(false);
+            setConnectionStatus('disconnected');
+            console.log('Gone offline');
+        };
+
+        setIsOnline(navigator.onLine);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+            console.log('User accepted install');
+        }
+        
+        setDeferredPrompt(null);
+        setShowInstallPrompt(false);
+    };
 
     // **NEW**: Handle incoming real-time updates directly
     const handleRealtimeUpdate = (payload: RealtimePostgresChangesPayload<Member>) => {
@@ -141,6 +204,34 @@ export default function Home() {
         }
     }, [quadMembers, currentUser?.id_member]);
 
+    // Handle PWA shortcuts and URL parameters
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        
+        if (action === 'update-status' && currentUser) {
+            setTimeout(() => setShowStatusModal(true), 1000); // Delay to let app load
+        }
+        
+        // Clean up URL parameters
+        if (action) {
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, '', cleanUrl);
+        }
+    }, [currentUser]);
+
+    // Show offline-ready notification
+    useEffect(() => {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(() => {
+                console.log('PWA is ready for offline use');
+                // You could show a toast notification here
+            });
+        }
+    }, []);
+
 
     const handleSetCurrentUser = (member: Member) => {
         setIsSwitchingUser(true);
@@ -150,11 +241,40 @@ export default function Home() {
         setTimeout(() => setIsSwitchingUser(false), 100);
     };
 
+    // Enhanced status update with offline support
     const handleStatusUpdate = async (statusKey: keyof typeof STATUS_OPTIONS) => {
         if (!currentUser) return;
         
         setIsUpdatingStatus(true);
         try {
+            if (!isOnline) {
+                // Store update for when back online
+                const pendingUpdate = {
+                    userId: currentUser.id_member,
+                    status: statusKey,
+                    timestamp: new Date().toISOString()
+                };
+                
+                if (typeof window !== 'undefined') {
+                    const pending = JSON.parse(localStorage.getItem('pendingUpdates') || '[]');
+                    pending.push(pendingUpdate);
+                    localStorage.setItem('pendingUpdates', JSON.stringify(pending));
+                }
+                
+                // Update local state optimistically
+                setQuadMembers(current => 
+                    current.map(member => 
+                        member.id_member === currentUser.id_member 
+                            ? { ...member, status: statusKey, last_updated: new Date().toISOString() }
+                            : member
+                    )
+                );
+                
+                setShowStatusModal(false);
+                alert("You're offline. Status will sync when back online.");
+                return;
+            }
+
             const { error } = await supabase
                 .from('members')
                 .update({ 
@@ -167,7 +287,6 @@ export default function Home() {
                 console.error("Error updating status:", error);
                 alert("Failed to update status. Please try again.");
             } else {
-                // **REMOVED**: No need to manually fetch. The real-time listener will handle the update.
                 setShowStatusModal(false);
             }
         } catch (error) {
@@ -177,6 +296,39 @@ export default function Home() {
             setIsUpdatingStatus(false);
         }
     };
+
+    // Sync pending updates when back online
+    useEffect(() => {
+        const syncPendingUpdates = async () => {
+            if (!isOnline || typeof window === 'undefined') return;
+            
+            const pending = JSON.parse(localStorage.getItem('pendingUpdates') || '[]');
+            if (pending.length === 0) return;
+            
+            console.log('Syncing pending updates:', pending);
+            
+            try {
+                for (const update of pending) {
+                    await supabase
+                        .from('members')
+                        .update({ 
+                            status: update.status, 
+                            last_updated: update.timestamp 
+                        })
+                        .eq('id_member', update.userId);
+                }
+                
+                localStorage.removeItem('pendingUpdates');
+                console.log('Pending updates synced successfully');
+            } catch (error) {
+                console.error('Failed to sync pending updates:', error);
+            }
+        };
+        
+        if (isOnline) {
+            syncPendingUpdates();
+        }
+    }, [isOnline]);
 
     // --- RENDER LOGIC (No changes needed below this line) ---
 
@@ -216,15 +368,28 @@ export default function Home() {
                 <header className="flex flex-wrap justify-between items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-4xl md:text-5xl font-bold">Quad Status</h1>
-                        <div className="flex items-center mt-2">
-                            <div className={`w-2 h-2 rounded-full mr-2 ${
-                                connectionStatus === 'connected' ? 'bg-green-400' : 
-                                connectionStatus === 'connecting' ? 'bg-yellow-400' : 'bg-red-400'
-                            }`}></div>
-                            <span className="text-sm text-gray-400">
-                                {connectionStatus === 'connected' ? 'Connected' : 
-                                 connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
-                            </span>
+                        <div className="flex items-center mt-2 space-x-4">
+                            <div className="flex items-center">
+                                <div className={`w-2 h-2 rounded-full mr-2 ${
+                                    !isOnline ? 'bg-red-500' :
+                                    connectionStatus === 'connected' ? 'bg-green-400' : 
+                                    connectionStatus === 'connecting' ? 'bg-yellow-400' : 'bg-red-400'
+                                }`}></div>
+                                <span className="text-sm text-gray-400">
+                                    {!isOnline ? 'Offline' :
+                                     connectionStatus === 'connected' ? 'Connected' : 
+                                     connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+                                </span>
+                            </div>
+                            
+                            {showInstallPrompt && (
+                                <button
+                                    onClick={handleInstallClick}
+                                    className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded-lg transition-colors"
+                                >
+                                    📱 <span>Install App</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center space-x-4">

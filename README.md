@@ -5,13 +5,18 @@ A real-time status tracking dashboard for dorm roommates built with Next.js, Typ
 ## Features
 
 - 🏠 Real-time status updates for roommates
+- 📱 **Progressive Web App (PWA)** - Installable on any device
+- 🔄 **Offline Support** - Works without internet with cached data
 - 📱 Responsive mobile-first design
 - 🎨 Beautiful dark theme with Tailwind CSS
 - ⚡ Real-time updates with Supabase
+- 🔔 **Background Sync** - Status updates sync when back online
+- 📲 **App Shortcuts** - Quick access to status updates from home screen
 - 🚀 Optimized for Vercel deployment
 - ⭐ Built with Next.js 15 and React 19 for cutting-edge performance
 - 🔥 Enhanced with React Compiler optimizations
 - 📦 Modern bundling with Turbopack support
+- 🌐 **Cross-Platform** - Install and use on iOS, Android, Windows, Mac
 
 ## Tech Stack
 

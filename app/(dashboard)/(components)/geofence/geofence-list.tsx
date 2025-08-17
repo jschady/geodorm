@@ -9,7 +9,8 @@ export function GeofenceList({
   geofences, 
   isLoading = false, 
   onCreateNew, 
-  onRefresh 
+  onRefresh,
+  onShare 
 }: GeofenceListProps) {
   
   if (isLoading) {
@@ -141,6 +142,7 @@ export function GeofenceList({
                 console.log('View details:', geofenceId);
                 // TODO: Navigate to geofence details page
               }}
+              onShare={onShare}
             />
           ))}
         </div>

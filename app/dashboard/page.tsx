@@ -4,12 +4,17 @@ import React, { useState } from 'react';
 import { SignOutButton } from '@clerk/nextjs';
 import { useAuth } from '@clerk/nextjs';
 import { useGeofences } from '../(dashboard)/(lib)/hooks/use-geofences';
+import { GeofenceListItem } from '../(dashboard)/(lib)/types';
 import { GeofenceList } from '../(dashboard)/(components)/geofence/geofence-list';
 import { CreateGeofenceModal } from '../(dashboard)/(components)/modals/create-geofence-modal';
+import { InviteShareModal } from '../(dashboard)/(components)/modals/invite-share-modal';
 import { 
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  XCircleIcon 
+  XCircleIcon,
+  UserGroupIcon,
+  MapPinIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 
 export default function DashboardPage() {
@@ -24,6 +29,11 @@ export default function DashboardPage() {
     addGeofence,
     removeGeofence,
   } = useGeofences();
+
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedGeofence, setSelectedGeofence] = useState<GeofenceListItem | null>(null);
 
   // Show loading while auth is initializing
   if (!isLoaded) {
@@ -73,6 +83,18 @@ export default function DashboardPage() {
       console.error('Failed to delete geofence:', error);
       // You could show a toast notification here
     }
+  };
+
+  // Handle geofence sharing
+  const handleShare = (geofence: GeofenceListItem) => {
+    setSelectedGeofence(geofence);
+    setShowShareModal(true);
+  };
+
+  // Handle share modal close
+  const handleShareModalClose = () => {
+    setShowShareModal(false);
+    setSelectedGeofence(null);
   };
 
   return (
@@ -136,10 +158,11 @@ export default function DashboardPage() {
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <GeofenceList
-                geofences={geofences}
+                geofences={geofences || []}
                 isLoading={isLoadingGeofences}
-                onCreateNew={handleCreateGeofence}
+                onCreateNew={() => setShowCreateModal(true)}
                 onRefresh={refreshGeofences}
+                onShare={handleShare}
               />
             </div>
           </div>
@@ -253,6 +276,19 @@ export default function DashboardPage() {
         onClose={() => setIsCreateModalOpen(false)}
         onGeofenceCreated={handleGeofenceCreated}
       />
+
+      {/* Share Invitation Modal */}
+      {selectedGeofence && (
+        <InviteShareModal
+          isOpen={showShareModal}
+          onClose={handleShareModalClose}
+          geofence={{
+            id_geofence: selectedGeofence.id_geofence,
+            name: selectedGeofence.name,
+            invite_code: selectedGeofence.invite_code
+          }}
+        />
+      )}
     </div>
   );
 } 

@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 
-export function GeofenceCard({ geofence, onEdit, onDelete, onViewDetails }: GeofenceCardProps) {
+export function GeofenceCard({ geofence, onEdit, onDelete, onViewDetails, onShare }: GeofenceCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showInviteCode, setShowInviteCode] = useState(false);
 
@@ -36,6 +36,13 @@ export function GeofenceCard({ geofence, onEdit, onDelete, onViewDetails }: Geof
       // You could add a toast notification here
     } catch (error) {
       console.error('Failed to copy invite link:', error);
+    }
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onShare) {
+      onShare(geofence);
     }
   };
 
@@ -152,6 +159,18 @@ export function GeofenceCard({ geofence, onEdit, onDelete, onViewDetails }: Geof
               </div>
             )}
           </div>
+
+          {/* Share Button for Owners */}
+          {geofence.role === 'owner' && onShare && (
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-2 px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+              title="Share invitation"
+            >
+              <ShareIcon className="h-4 w-4" />
+              Share
+            </button>
+          )}
         </div>
 
         {/* Card Stats */}

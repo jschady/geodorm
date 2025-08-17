@@ -47,6 +47,14 @@ export interface GeofenceMember {
   joined_at: string;
 }
 
+// Extended geofence member with user details for display
+export interface GeofenceMemberWithUser extends GeofenceMember {
+  users?: {
+    full_name: string;
+    email: string;
+  };
+}
+
 // User interface for authenticated users
 export interface User {
   id_user: string;
@@ -207,6 +215,7 @@ export interface GeofenceCardProps {
   onEdit?: (geofence: GeofenceListItem) => void;
   onDelete?: (geofenceId: string) => void;
   onViewDetails?: (geofenceId: string) => void;
+  onShare?: (geofence: GeofenceListItem) => void;
 }
 
 export interface GeofenceListProps {
@@ -214,6 +223,7 @@ export interface GeofenceListProps {
   isLoading?: boolean;
   onCreateNew?: () => void;
   onRefresh?: () => void;
+  onShare?: (geofence: GeofenceListItem) => void;
 }
 
 export interface CreateGeofenceFormProps {
@@ -235,4 +245,49 @@ export interface GeofenceDetailsProps {
   onEditGeofence?: () => void;
   onDeleteGeofence?: () => void;
   onManageMembers?: () => void;
+} 
+
+// Invitation System Types (Epic 3)
+export interface InviteValidationResponse {
+  valid: boolean;
+  geofence?: {
+    id_geofence: string;
+    name: string;
+    owner_name: string;
+    member_count: number;
+    created_at: string;
+  };
+  error?: string;
+}
+
+export interface JoinGeofenceRequest {
+  invite_code: string;
+  id_user: string; // From Clerk auth
+}
+
+export interface JoinGeofenceResponse {
+  success: boolean;
+  geofence: {
+    id_geofence: string;
+    name: string;
+    role: 'member';
+  };
+  message?: string;
+}
+
+export interface ShareableInvite {
+  url: string;
+  invite_code: string;
+  qr_code?: string; // Base64 encoded QR code
+  expires_at?: string; // Future enhancement
+}
+
+export interface InviteShareModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  geofence: {
+    id_geofence: string;
+    name: string;
+    invite_code: string;
+  };
 } 

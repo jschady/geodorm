@@ -27,7 +27,7 @@ export async function GET(
   { params }: any
 ) {
   try {
-    const inviteCode = params.invite;
+    const inviteCode = params.code;
 
     if (!inviteCode) {
       return NextResponse.json({

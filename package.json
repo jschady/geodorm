@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.31.1",
+    "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.45.0",
     "nanoid": "^5.1.5",
     "next": "^15.0.0",

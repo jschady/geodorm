@@ -1,6 +1,6 @@
 // Service Worker for Dorm Status PWA
-const CACHE_NAME = 'dorm-status-v1';
-const STATIC_CACHE = 'dorm-status-static-v1';
+const CACHE_NAME = 'dorm-status-v2'; // Incremented to force cache refresh
+const STATIC_CACHE = 'dorm-status-static-v2'; // Incremented to force cache refresh
 
 // Files to cache for offline functionality
 const STATIC_FILES = [

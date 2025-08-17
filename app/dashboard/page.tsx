@@ -19,7 +19,6 @@ import {
 
 export default function DashboardPage() {
   const { isSignedIn, isLoaded } = useAuth();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
   const {
     geofences,
@@ -31,7 +30,7 @@ export default function DashboardPage() {
   } = useGeofences();
 
   // Modal states
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedGeofence, setSelectedGeofence] = useState<GeofenceListItem | null>(null);
 
@@ -160,7 +159,7 @@ export default function DashboardPage() {
               <GeofenceList
                 geofences={geofences || []}
                 isLoading={isLoadingGeofences}
-                onCreateNew={() => setShowCreateModal(true)}
+                onCreateNew={() => setIsCreateModalOpen(true)}
                 onRefresh={refreshGeofences}
                 onShare={handleShare}
               />

@@ -28,7 +28,7 @@
 ## 🚀 Quick Start
 
 ```bash
-git clone <your-repo> && cd dorm-status && npm install
+git clone https://github.com/jschady/dorm-status && cd dorm-status && npm install
 ```
 
 **Supabase Setup:**

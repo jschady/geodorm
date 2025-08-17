@@ -1,15 +1,15 @@
 /**
- * Vercel API Endpoint for GPS Location Processing
+ * Next.js 15 App Router API Route for GPS Location Processing
  * Receives location data from Overland GPS iOS app and processes geofencing logic
  */
 
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import type { 
   OverlandRequest, 
   LocationProcessingResponse, 
   ErrorResponse,
   ValidationResult 
-} from './lib/location-types';
+} from '../lib/location-types';
 
 // Environment variables (for future database integration)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -184,66 +184,70 @@ function extractDeviceIds(request: OverlandRequest): string[] {
 }
 
 /**
- * Main API handler for location updates
+ * POST handler for location updates
  */
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<LocationProcessingResponse | ErrorResponse>
-) {
+export async function POST(request: NextRequest) {
   const requestId = generateRequestId();
   const startTime = Date.now();
   
   logMessage('info', 'Location update request received', {
-    method: req.method,
+    method: 'POST',
     headers: {
-      'content-type': req.headers['content-type'],
-      'user-agent': req.headers['user-agent']
+      'content-type': request.headers.get('content-type'),
+      'user-agent': request.headers.get('user-agent')
     }
   }, requestId);
 
   try {
-    // Only accept POST requests
-    if (req.method !== 'POST') {
-      logMessage('warn', 'Invalid HTTP method', { method: req.method }, requestId);
-      return res.status(405).json({
-        result: 'error',
-        error: 'Method not allowed',
-        details: 'Only POST requests are accepted',
-        timestamp: new Date().toISOString()
-      });
-    }
-
     // Check content-type header
-    if (!req.headers['content-type']?.includes('application/json')) {
+    if (!request.headers.get('content-type')?.includes('application/json')) {
       logMessage('warn', 'Invalid content-type', { 
-        contentType: req.headers['content-type'] 
+        contentType: request.headers.get('content-type')
       }, requestId);
-      return res.status(400).json({
+      
+      return NextResponse.json({
         result: 'error',
         error: 'Invalid content-type',
         details: 'Content-Type must be application/json',
         timestamp: new Date().toISOString()
-      });
+      } as ErrorResponse, { status: 400 });
+    }
+
+    // Parse request body
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      logMessage('warn', 'Invalid JSON in request body', {
+        error: error instanceof Error ? error.message : 'Unknown JSON parse error'
+      }, requestId);
+      
+      return NextResponse.json({
+        result: 'error',
+        error: 'Invalid JSON',
+        details: 'Request body must be valid JSON',
+        timestamp: new Date().toISOString()
+      } as ErrorResponse, { status: 400 });
     }
 
     // Validate request body structure
-    const validation = validateOverlandRequest(req.body);
+    const validation = validateOverlandRequest(body);
     if (!validation.isValid) {
       logMessage('warn', 'Request validation failed', {
         error: validation.error,
         details: validation.details
       }, requestId);
       
-      return res.status(400).json({
+      return NextResponse.json({
         result: 'error',
         error: validation.error || 'Validation failed',
         details: validation.details,
         timestamp: new Date().toISOString()
-      });
+      } as ErrorResponse, { status: 400 });
     }
 
     // Cast to proper type after validation
-    const overlandRequest = req.body as OverlandRequest;
+    const overlandRequest = body as OverlandRequest;
     
     // Extract processing information
     const locationCount = overlandRequest.locations.length;
@@ -280,11 +284,11 @@ export default async function handler(
     }, requestId);
 
     // Return successful response (required format for Overland GPS app)
-    return res.status(200).json({
+    return NextResponse.json({
       result: 'ok',
       message: 'Location data received and logged',
       processed_count: locationCount
-    });
+    } as LocationProcessingResponse);
 
   } catch (error) {
     const processingTime = Date.now() - startTime;
@@ -295,11 +299,11 @@ export default async function handler(
       processing_time_ms: processingTime
     }, requestId);
 
-    return res.status(500).json({
+    return NextResponse.json({
       result: 'error',
       error: 'Internal server error',
       details: 'An unexpected error occurred while processing the request',
       timestamp: new Date().toISOString()
-    });
+    } as ErrorResponse, { status: 500 });
   }
 } 

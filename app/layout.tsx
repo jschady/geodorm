@@ -35,10 +35,10 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: [
-    { rel: "icon", url: "/icon-192x192.png?v=2", sizes: "192x192", type: "image/png" },
-    { rel: "icon", url: "/icon-512x512.png?v=2", sizes: "512x512", type: "image/png" },
-    { rel: "apple-touch-icon", url: "/icon-192x192.png?v=2", sizes: "192x192" },
-    { rel: "shortcut icon", url: "/favicon.ico?v=2" },
+    { rel: "icon", url: "/icon-192x192.png?v=3", sizes: "192x192", type: "image/png" },
+    { rel: "icon", url: "/icon-512x512.png?v=3", sizes: "512x512", type: "image/png" },
+    { rel: "apple-touch-icon", url: "/icon-192x192.png?v=3", sizes: "192x192" },
+    { rel: "shortcut icon", url: "/favicon.ico?v=3" },
   ],
   openGraph: {
     type: "website",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     description: "Real-time status tracking dashboard for dorm roommates",
     images: [
       {
-        url: "/icon-512x512.png?v=2",
+        url: "/icon-512x512.png?v=3",
         width: 512,
         height: 512,
         alt: "Tiger Dorm Dashboard",
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Tiger Dorm Dashboard",
     description: "Real-time status tracking dashboard for dorm roommates",
-    images: ["/icon-512x512.png?v=2"],
+    images: ["/icon-512x512.png?v=3"],
   },
 };
 

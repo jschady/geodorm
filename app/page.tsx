@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-// --- ICONS (as SVG components for better styling) ---
+// --- ICONS (No changes here, they are fine) ---
 const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
 const BookOpenIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
 const DumbbellIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6.5 6.5 11 11"></path><path d="m21 21-1-1"></path><path d="m3 3 1 1"></path><path d="m18 22 4-4"></path><path d="m6 2 4 4"></path><path d="m3 10 7-7"></path><path d="m14 21 7-7"></path></svg>;
@@ -14,15 +14,12 @@ const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" he
 const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
 
 // --- Supabase Configuration ---
-// IMPORTANT: Replace this with your actual Supabase project URL and anon key.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase config is not set. Please update environment variables.');
 }
-
-// Create Supabase client
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // --- Status Options ---
@@ -53,104 +50,103 @@ export default function Home() {
     const [isSwitchingUser, setIsSwitchingUser] = useState(false);
     const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
 
-    // Separate function to fetch members without currentUser dependency
-    const fetchMembers = useCallback(async () => {
-        try {
-            const { data, error } = await supabase.from('members').select('*').order('name', { ascending: true });
-            if (error) {
-                console.error("Error fetching members:", error);
-                return;
+    // **NEW**: Handle incoming real-time updates directly
+    const handleRealtimeUpdate = (payload: RealtimePostgresChangesPayload<Member>) => {
+        console.log("Real-time event received:", payload);
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        
+        setQuadMembers(currentMembers => {
+            let updatedMembers = [...currentMembers];
+
+            if (eventType === 'INSERT') {
+                updatedMembers.push(newRecord as Member);
+            } else if (eventType === 'UPDATE') {
+                const index = updatedMembers.findIndex(m => m.id_member === newRecord.id_member);
+                if (index !== -1) {
+                    updatedMembers[index] = newRecord as Member;
+                }
+            } else if (eventType === 'DELETE') {
+                 // Supabase returns the old record's id in a different format for DELETE
+                const deletedId = (oldRecord as { id_member: string }).id_member;
+                updatedMembers = updatedMembers.filter(m => m.id_member !== deletedId);
             }
-            
-            setQuadMembers(data || []);
-        } catch (error) {
-            console.error("Error in fetchMembers:", error);
-        }
-    }, []);
+            // Sort to maintain consistent order
+            return updatedMembers.sort((a, b) => a.name.localeCompare(b.name));
+        });
+    };
 
-    // Separate function to update current user data from members list
-    const updateCurrentUserFromMembers = useCallback((members: Member[], currentUserId: string) => {
-        const updatedCurrentUser = members.find(member => member.id_member === currentUserId);
-        if (updatedCurrentUser) {
-            setCurrentUser(updatedCurrentUser);
-            // Update session storage with latest user data
-            if (typeof window !== 'undefined') {
-                sessionStorage.setItem('quadCurrentUser', JSON.stringify(updatedCurrentUser));
-            }
-        }
-    }, []);
-
-    // Update current user when members data changes (but not during user switching)
-    useEffect(() => {
-        if (currentUser && quadMembers.length > 0 && !isSwitchingUser) {
-            updateCurrentUserFromMembers(quadMembers, currentUser.id_member);
-        }
-    }, [quadMembers, currentUser?.id_member, isSwitchingUser, updateCurrentUserFromMembers]);
-
+    // Main useEffect for initialization and subscriptions
     useEffect(() => {
         if (!supabaseUrl || !supabaseAnonKey) {
-            console.warn("Supabase config is not set. Please update environment variables.");
+            console.warn("Supabase config is not set.");
             setIsLoading(false);
             return;
         }
 
         const initializeApp = async () => {
-            // Initial fetch
-            await fetchMembers();
+            // 1. Initial data fetch
+            const { data, error } = await supabase.from('members').select('*').order('name', { ascending: true });
+            if (error) {
+                console.error("Error fetching initial members:", error);
+            } else {
+                setQuadMembers(data || []);
+            }
             setIsLoading(false);
 
-            // Set up real-time subscription
-            const channel = supabase
-                .channel('members-channel')
-                .on('postgres_changes', { 
-                    event: '*', 
-                    schema: 'public', 
-                    table: 'members' 
-                }, (payload) => {
-                    console.log('Real-time update received:', payload);
-                    fetchMembers();
-                })
-                .subscribe((status) => {
-                    console.log('Subscription status:', status);
-                    setConnectionStatus(status === 'SUBSCRIBED' ? 'connected' : 
-                                     status === 'CLOSED' ? 'disconnected' : 'connecting');
-                });
-
-            // Load saved user from session storage
-            const savedUser = typeof window !== 'undefined' ? sessionStorage.getItem('quadCurrentUser') : null;
+            // 2. Load user from session storage
+            const savedUser = sessionStorage.getItem('quadCurrentUser');
             if (savedUser) {
                 try {
-                    const parsedUser = JSON.parse(savedUser);
-                    setCurrentUser(parsedUser);
-                } catch (error) {
-                    console.error("Error parsing saved user:", error);
+                    setCurrentUser(JSON.parse(savedUser));
+                } catch (e) {
                     setShowUserModal(true);
                 }
             } else {
                 setShowUserModal(true);
             }
-
-            return () => {
-                console.log('Cleaning up subscription');
-                supabase.removeChannel(channel);
-            };
         };
 
-        const cleanup = initializeApp();
+        initializeApp();
 
+        // **MODIFIED**: Set up real-time subscription with the new handler
+        const channel = supabase
+            .channel('members-channel')
+            .on<Member>(
+                'postgres_changes', 
+                { event: '*', schema: 'public', table: 'members' }, 
+                handleRealtimeUpdate
+            )
+            .subscribe((status) => {
+                console.log('Subscription status:', status);
+                if (status === 'SUBSCRIBED') setConnectionStatus('connected');
+                else if (status === 'CLOSED') setConnectionStatus('disconnected');
+                else setConnectionStatus('connecting');
+            });
+
+        // Cleanup function
         return () => {
-            cleanup.then(cleanupFn => cleanupFn?.());
+            console.log('Cleaning up subscription');
+            supabase.removeChannel(channel);
         };
-    }, [fetchMembers]);
+    }, []); // Empty dependency array ensures this runs only once
+
+    // This useEffect keeps the `currentUser` object in sync with the main `quadMembers` list
+    useEffect(() => {
+        if (currentUser) {
+            const updatedUser = quadMembers.find(member => member.id_member === currentUser.id_member);
+            if (updatedUser) {
+                setCurrentUser(updatedUser);
+                sessionStorage.setItem('quadCurrentUser', JSON.stringify(updatedUser));
+            }
+        }
+    }, [quadMembers, currentUser?.id_member]);
+
 
     const handleSetCurrentUser = (member: Member) => {
         setIsSwitchingUser(true);
         setCurrentUser(member);
-        if (typeof window !== 'undefined') {
-            sessionStorage.setItem('quadCurrentUser', JSON.stringify(member));
-        }
+        sessionStorage.setItem('quadCurrentUser', JSON.stringify(member));
         setShowUserModal(false);
-        // Reset switching flag after a short delay to allow state to settle
         setTimeout(() => setIsSwitchingUser(false), 100);
     };
 
@@ -170,20 +166,19 @@ export default function Home() {
             if (error) {
                 console.error("Error updating status:", error);
                 alert("Failed to update status. Please try again.");
-                return;
+            } else {
+                // **REMOVED**: No need to manually fetch. The real-time listener will handle the update.
+                setShowStatusModal(false);
             }
-            
-            // Manually trigger a refresh as fallback
-            await fetchMembers();
-            setShowStatusModal(false);
-            
         } catch (error) {
-            console.error("Error updating status:", error);
-            alert("Failed to update status. Please try again.");
+            console.error("Error in handleStatusUpdate:", error);
+            alert("An unexpected error occurred. Please try again.");
         } finally {
             setIsUpdatingStatus(false);
         }
     };
+
+    // --- RENDER LOGIC (No changes needed below this line) ---
 
     if (isLoading) {
          return (
@@ -272,7 +267,7 @@ export default function Home() {
                     ) : (
                         <div className="col-span-full text-center text-gray-400 mt-10">
                             <p>No quad members found.</p>
-                            <p>Click "Select User" to add the first person!</p>
+                            <p>You can add the first person via the "Select User" button.</p>
                         </div>
                     )}
                 </main>
@@ -291,7 +286,7 @@ export default function Home() {
     );
 }
 
-// --- Sub-Components ---
+// --- Sub-Components (No changes needed) ---
 
 function StatusCard({ member }: { member: Member }) {
     const statusInfo = STATUS_OPTIONS[member.status] || STATUS_OPTIONS['AWAY'];
@@ -400,8 +395,11 @@ function UserSelectionModal({
             .insert([{ name: newName.trim(), status: 'AWAY', last_updated: new Date().toISOString() }])
             .select();
 
-        if (insertError) setError(insertError.message);
-        else if (data?.[0]) {
+        if (insertError) {
+             setError(insertError.message);
+        } else if (data?.[0]) {
+            // After inserting, the real-time 'INSERT' event will add the user to the state.
+            // We just need to select them.
             onSelectUser(data[0] as Member);
             setNewName('');
         }
@@ -481,4 +479,4 @@ function UserSelectionModal({
             </div>
         </div>
     );
-} 
+}

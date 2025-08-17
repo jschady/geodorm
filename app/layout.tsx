@@ -68,20 +68,20 @@ export default function RootLayout({
 
         {/* Icons */}
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icon-192x192.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/icon-192x192.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/icon-192x192.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icon-192x192.png?v=2" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png?v=2" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/icon-192x192.png?v=2" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icon-192x192.png?v=2" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/icon-192x192.png?v=2" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="mask-icon" href="/icon-192x192.png" color="#4f46e5" />
+        <link rel="mask-icon" href="/icon-192x192.png?v=2" color="#4f46e5" />
         <link rel="shortcut icon" href="/favicon.ico" />
 
         {/* Splash Screens for iOS */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <link 
           rel="apple-touch-startup-image" 
-          href="/icon-512x512.png" 
+          href="/icon-512x512.png?v=2" 
           media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" 
         />
       </head>

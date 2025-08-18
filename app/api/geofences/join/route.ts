@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         geofence: {
           id_geofence: geofence.id_geofence,
           name: geofence.name,
-          owner_name: (geofence as any).users?.full_name || 'Unknown',
+          owner_name: (geofence as any).owner?.full_name || 'Unknown',
           member_count: members?.length || 0,
           created_at: geofence.created_at
         }

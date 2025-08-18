@@ -46,11 +46,11 @@ CREATE TABLE geofence_members (
   PRIMARY KEY (id_geofence, id_user)
 );
 
--- Device mappings table - GPS device tracking for users
+-- Device mappings table - GPS device tracking for users (one device per user)
 CREATE TABLE device_mappings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   device_id TEXT UNIQUE NOT NULL,
-  id_user TEXT REFERENCES users(id_user) ON DELETE CASCADE,
+  id_user TEXT UNIQUE REFERENCES users(id_user) ON DELETE CASCADE, -- Unique constraint enforces one device per user
   enabled BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   last_location_update TIMESTAMP WITH TIME ZONE
@@ -178,4 +178,5 @@ CREATE TRIGGER add_owner_as_member_trigger
 
 -- Enable realtime for status updates
 ALTER publication supabase_realtime ADD TABLE geofence_members;
-ALTER publication supabase_realtime ADD TABLE geofences; 
+ALTER publication supabase_realtime ADD TABLE geofences;
+ALTER publication supabase_realtime ADD TABLE device_mappings; 

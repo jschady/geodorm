@@ -228,6 +228,55 @@ export class DatabaseService {
     return data;
   }
 
+  // Device mapping operations
+  async getUserDevice(): Promise<DeviceMapping | null> {
+    const { data, error } = await this.supabase
+      .from('device_mappings')
+      .select('*')
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    return data;
+  }
+
+  async registerDevice(device_id: string): Promise<DeviceMapping> {
+    const { data, error } = await this.supabase
+      .from('device_mappings')
+      .upsert({
+        device_id,
+        enabled: true,
+        created_at: new Date().toISOString(),
+        last_location_update: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateDeviceStatus(enabled: boolean): Promise<DeviceMapping> {
+    const { data, error } = await this.supabase
+      .from('device_mappings')
+      .update({ enabled })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async removeDevice(): Promise<void> {
+    const { error } = await this.supabase
+      .from('device_mappings')
+      .delete();
+
+    if (error) throw error;
+  }
+
   // Real-time subscriptions
   subscribeToGeofenceMembers(
     id_geofence: string,
@@ -248,6 +297,29 @@ export class DatabaseService {
       )
       .subscribe((status) => {
         console.log('Real-time subscription status:', status);
+        if (statusCallback) {
+          statusCallback(status);
+        }
+      });
+  }
+
+  subscribeToUserDevice(
+    callback: (payload: any) => void,
+    statusCallback?: (status: string) => void
+  ) {
+    return this.supabase
+      .channel('user-device')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'device_mappings'
+        },
+        callback
+      )
+      .subscribe((status) => {
+        console.log('Device subscription status:', status);
         if (statusCallback) {
           statusCallback(status);
         }

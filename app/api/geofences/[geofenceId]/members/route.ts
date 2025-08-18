@@ -16,7 +16,7 @@ const supabaseAdmin = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { geofenceId: string } }
+  { params }: { params: Promise<{ geofenceId: string }> }
 ) {
   try {
     // Authenticate the user

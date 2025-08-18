@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
           id_geofence,
           name,
           created_at,
-          wner:users!geofences_id_user_fkey(full_name)
+          owner:users!geofences_id_user_fkey(full_name)
         `)
         .eq('invite_code', inviteCode)
         .single();

@@ -58,10 +58,8 @@ export function DeviceRegistrationModal({ isOpen, onClose, onDeviceRegistered }:
         onDeviceRegistered(deviceId.trim());
       }
       
-      // Close modal after a short delay to let user see success message
-      setTimeout(() => {
-        handleClose();
-      }, 2000);
+      // Close modal immediately instead of waiting
+      handleClose();
 
     } catch (error) {
       console.error('Failed to register device:', error);

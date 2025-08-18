@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import { MemberList } from '../../(dashboard)/(components)/members/member-list';
 import { InviteShareModal } from '../../(dashboard)/(components)/modals/invite-share-modal';
+import { GeofenceSettingsModal } from '../../(dashboard)/(components)/modals/geofence-settings-modal';
 import { useGeofenceDetails } from '../../(dashboard)/(lib)/hooks/use-geofence-details';
 import { useMembers } from '../../(dashboard)/(lib)/hooks/use-members';
 
@@ -26,6 +27,7 @@ export default function GeofenceDetailPage() {
   const { members, isLoading: membersLoading, error: membersError } = useMembers(geofenceId);
   
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   
   const isOwner = geofence?.role === 'owner';
   
@@ -100,7 +102,10 @@ export default function GeofenceDetailPage() {
             )}
             
             {isOwner && (
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">
+              <button 
+                onClick={() => setShowSettingsModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
+              >
                 <Cog6ToothIcon className="h-4 w-4" />
                 Settings
               </button>
@@ -199,6 +204,20 @@ export default function GeofenceDetailPage() {
             invite_code: geofence.invite_code
           }}
         />
+
+        {/* Settings Modal */}
+        {isOwner && (
+          <GeofenceSettingsModal
+            isOpen={showSettingsModal}
+            onClose={() => setShowSettingsModal(false)}
+            geofence={geofence}
+            onGeofenceUpdated={(updatedGeofence) => {
+              // Refresh the geofence data
+              // The hook should automatically refresh when the component re-renders
+              console.log('Geofence updated:', updatedGeofence);
+            }}
+          />
+        )}
       </div>
     </div>
   );

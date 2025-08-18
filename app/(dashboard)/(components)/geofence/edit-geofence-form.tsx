@@ -1,25 +1,33 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CreateGeofenceFormProps, CreateGeofenceRequest } from '../../(lib)/types';
 import { MapPinIcon, HomeIcon, ExclamationTriangleIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 
-export function CreateGeofenceForm({ onSubmit, isLoading = false, onCancel }: CreateGeofenceFormProps) {
-  const [formData, setFormData] = useState<CreateGeofenceRequest>({
-    name: '',
-    center_latitude: 0,
-    center_longitude: 0,
-    radius_meters: 50,
-    hysteresis_meters: 5
-  });
+export interface UpdateGeofenceRequest {
+  name: string;
+  center_latitude: number;
+  center_longitude: number;
+  radius_meters: number;
+  hysteresis_meters: number;
+}
 
-  const [errors, setErrors] = useState<Partial<Record<keyof CreateGeofenceRequest, string>>>({});
+export interface EditGeofenceFormProps {
+  initialData: UpdateGeofenceRequest;
+  onSubmit: (data: UpdateGeofenceRequest) => Promise<void>;
+  isLoading?: boolean;
+  onCancel?: () => void;
+}
+
+export function EditGeofenceForm({ initialData, onSubmit, isLoading = false, onCancel }: EditGeofenceFormProps) {
+  const [formData, setFormData] = useState<UpdateGeofenceRequest>(initialData);
+
+  const [errors, setErrors] = useState<Partial<Record<keyof UpdateGeofenceRequest, string>>>({});
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Form validation
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof CreateGeofenceRequest, string>> = {};
+    const newErrors: Partial<Record<keyof UpdateGeofenceRequest, string>> = {};
 
     if (!formData.name.trim()) {
       newErrors.name = 'Geofence name is required';
@@ -108,7 +116,7 @@ export function CreateGeofenceForm({ onSubmit, isLoading = false, onCancel }: Cr
     }
   };
 
-  const handleInputChange = (field: keyof CreateGeofenceRequest, value: string | number) => {
+  const handleInputChange = (field: keyof UpdateGeofenceRequest, value: string | number) => {
     setFormData({ ...formData, [field]: value });
     // Clear error for this field when user starts typing
     if (errors[field]) {
@@ -374,10 +382,10 @@ export function CreateGeofenceForm({ onSubmit, isLoading = false, onCancel }: Cr
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Creating...
+              Saving...
             </>
           ) : (
-            'Create Geofence'
+            'Save Changes'
           )}
         </button>
       </div>

@@ -68,7 +68,7 @@ CREATE INDEX idx_geofences_owner ON geofences(id_user);
 CREATE INDEX idx_geofences_invite_code ON geofences(invite_code);
 
 -- Geofence members table indexes
-CREATE INDEX idx_geofence_members_user ON geofence_members(id_user);  
+CREATE INDEX idx_geofence_members_user ON geofence_members(id_user);
 CREATE INDEX idx_geofence_members_geofence ON geofence_members(id_geofence);
 CREATE INDEX idx_geofence_members_last_updated ON geofence_members(last_updated);
 
@@ -90,7 +90,7 @@ ALTER TABLE device_mappings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own record" ON users
   FOR SELECT USING (auth.uid()::text = id_user);
 
-CREATE POLICY "Users can update own record" ON users  
+CREATE POLICY "Users can update own record" ON users
   FOR UPDATE USING (auth.uid()::text = id_user);
 
 -- Note: User creation/deletion is handled by webhooks with service role
@@ -100,7 +100,7 @@ CREATE POLICY "Users can view accessible geofences" ON geofences
   FOR SELECT USING (
     id_user = auth.uid()::text OR
     id_geofence IN (
-      SELECT id_geofence FROM geofence_members 
+      SELECT id_geofence FROM geofence_members
       WHERE id_user = auth.uid()::text
     )
   );
@@ -118,10 +118,11 @@ CREATE POLICY "Owners can delete geofences" ON geofences
 CREATE POLICY "Members can view geofence members" ON geofence_members
   FOR SELECT USING (
     id_geofence IN (
-      SELECT id_geofence FROM geofence_members 
-      WHERE id_user = auth.uid()::text
+      SELECT id_geofence FROM geofence_members AS gm2
+      WHERE gm2.id_user = auth.uid()::text
     )
   );
+
 
 CREATE POLICY "Users can update own status" ON geofence_members
   FOR UPDATE USING (id_user = auth.uid()::text);
@@ -151,10 +152,10 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers for updated_at timestamps
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users 
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
-CREATE TRIGGER update_geofences_updated_at BEFORE UPDATE ON geofences 
+CREATE TRIGGER update_geofences_updated_at BEFORE UPDATE ON geofences
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
 -- Function to automatically add owner as member when geofence is created
@@ -168,7 +169,7 @@ END;
 $$ language 'plpgsql';
 
 -- Trigger to add owner as member
-CREATE TRIGGER add_owner_as_member_trigger 
+CREATE TRIGGER add_owner_as_member_trigger
     AFTER INSERT ON geofences
     FOR EACH ROW EXECUTE PROCEDURE add_owner_as_member();
 
@@ -179,4 +180,4 @@ CREATE TRIGGER add_owner_as_member_trigger
 -- Enable realtime for status updates
 ALTER publication supabase_realtime ADD TABLE geofence_members;
 ALTER publication supabase_realtime ADD TABLE geofences;
-ALTER publication supabase_realtime ADD TABLE device_mappings; 
+ALTER publication supabase_realtime ADD TABLE device_mappings;

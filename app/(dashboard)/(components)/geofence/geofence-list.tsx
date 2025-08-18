@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { GeofenceListProps } from '../../(lib)/types';
 import { GeofenceCard } from './geofence-card';
 import { PlusIcon, MapIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
@@ -12,6 +13,7 @@ export function GeofenceList({
   onRefresh,
   onShare 
 }: GeofenceListProps) {
+  const router = useRouter();
   
   if (isLoading) {
     return (
@@ -139,8 +141,7 @@ export function GeofenceList({
                 // TODO: Implement delete functionality
               }}
               onViewDetails={(geofenceId) => {
-                console.log('View details:', geofenceId);
-                // TODO: Navigate to geofence details page
+                router.push(`/dashboard/${geofenceId}`);
               }}
               onShare={onShare}
             />

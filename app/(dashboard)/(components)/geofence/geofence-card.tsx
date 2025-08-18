@@ -47,7 +47,10 @@ export function GeofenceCard({ geofence, onEdit, onDelete, onViewDetails, onShar
   };
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200">
+    <div 
+      className="bg-white overflow-hidden shadow rounded-lg border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 cursor-pointer relative"
+      onClick={() => onViewDetails?.(geofence.id_geofence)}
+    >
       {/* Card Header */}
       <div className="px-4 py-5 sm:p-6">
         <div className="flex items-center justify-between">
@@ -84,7 +87,10 @@ export function GeofenceCard({ geofence, onEdit, onDelete, onViewDetails, onShar
           {/* Actions Menu */}
           <div className="relative flex-shrink-0">
             <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+              }}
               className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
             >
               <EllipsisVerticalIcon className="h-5 w-5" />
@@ -185,7 +191,10 @@ export function GeofenceCard({ geofence, onEdit, onDelete, onViewDetails, onShar
           {/* Invite Code Display */}
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setShowInviteCode(!showInviteCode)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowInviteCode(!showInviteCode);
+              }}
               className="text-xs text-indigo-600 hover:text-indigo-500 font-medium"
             >
               {showInviteCode ? 'Hide Code' : 'Show Invite Code'}
@@ -193,7 +202,10 @@ export function GeofenceCard({ geofence, onEdit, onDelete, onViewDetails, onShar
             
             {showInviteCode && (
               <code 
-                onClick={copyInviteCode}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyInviteCode();
+                }}
                 className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-mono cursor-pointer hover:bg-gray-200 transition-colors"
                 title="Click to copy"
               >
@@ -203,13 +215,6 @@ export function GeofenceCard({ geofence, onEdit, onDelete, onViewDetails, onShar
           </div>
         </div>
       </div>
-
-      {/* Click overlay for viewing details */}
-      <div
-        onClick={() => onViewDetails?.(geofence.id_geofence)}
-        className="absolute inset-0 cursor-pointer z-0"
-        style={{ zIndex: -1 }}
-      />
     </div>
   );
 } 

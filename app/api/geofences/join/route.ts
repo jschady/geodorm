@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
           id_geofence,
           name,
           created_at,
-          users!inner(full_name)
+          wner:users!geofences_id_user_fkey(full_name)
         `)
         .eq('invite_code', inviteCode)
         .single();
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       if (geofenceError || !geofence) {
         return NextResponse.json({
           valid: false,
-          error: 'Invalid or expired invitation code'
+          error: geofenceError?.message || geofence 
         } as InviteValidationResponse, { status: 404 });
       }
   

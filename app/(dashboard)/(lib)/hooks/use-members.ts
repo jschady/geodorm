@@ -28,24 +28,16 @@ export function useMembers(geofenceId: string | null): UseMembersResult {
     setError(null);
 
     try {
-      // Fetch members with user details
-      const { data, error: fetchError } = await supabase
-        .from('geofence_members')
-        .select(`
-          *,
-          users!inner(
-            full_name,
-            email
-          )
-        `)
-        .eq('id_geofence', geofenceId)
-        .order('joined_at', { ascending: true });
-
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      // Fetch members via API endpoint
+      const response = await fetch(`/api/geofences/${geofenceId}/members`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
-
-      setMembers(data || []);
+      
+      const { members } = await response.json();
+      setMembers(members || []);
     } catch (err) {
       console.error('Failed to fetch members:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch members');

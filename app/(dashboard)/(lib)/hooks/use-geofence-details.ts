@@ -28,31 +28,44 @@ export function useGeofenceDetails(geofenceId: string | null): UseGeofenceDetail
     setError(null);
 
     try {
-      // Fetch geofence with member information to determine role
-      const { data, error: fetchError } = await supabase
+      // First, fetch the geofence data
+      const { data: geofenceData, error: geofenceError } = await supabase
         .from('geofences')
-        .select(`
-          *,
-          geofence_members!inner(
-            role,
-            id_user
-          )
-        `)
+        .select('*')
         .eq('id_geofence', geofenceId)
-        .eq('geofence_members.id_user', user.id)
-        .single();
+        .maybeSingle();
 
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      if (geofenceError) {
+        throw new Error(geofenceError.message);
       }
 
-      if (data) {
-        const geofenceWithRole = {
-          ...data,
-          role: data.geofence_members?.[0]?.role || 'member'
-        };
-        setGeofence(geofenceWithRole as any);
+      if (!geofenceData) {
+        throw new Error('Geofence not found');
       }
+
+      // Then, fetch the user's role in this geofence
+      const { data: memberData, error: memberError } = await supabase
+        .from('geofence_members')
+        .select('role')
+        .eq('id_geofence', geofenceId)
+        .eq('id_user', user.id)
+        .maybeSingle();
+
+      if (memberError) {
+        throw new Error(`Access denied: ${memberError.message}`);
+      }
+
+      if (!memberData) {
+        throw new Error('You do not have access to this geofence');
+      }
+
+      // Combine the data
+      const geofenceWithRole = {
+        ...geofenceData,
+        role: memberData.role as 'owner' | 'member'
+      };
+      
+      setGeofence(geofenceWithRole);
     } catch (err) {
       console.error('Failed to fetch geofence:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch geofence');

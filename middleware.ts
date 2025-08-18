@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Route matchers for different protection levels
 const isPublicRoute = createRouteMatcher(["/", "/join", "/sign-in(.*)", "/sign-up(.*)"]);
 const isWebhookRoute = createRouteMatcher(["/api/webhooks/(.*)"]);
-const isPublicAPIRoute = createRouteMatcher(["/api/geofences/join/(.*)"]);
+const isPublicAPIRoute = createRouteMatcher(["/api/geofences/join/(.*)", "/api/location-update"]);
 const isAPIRoute = createRouteMatcher(["/api(.*)"]);
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/create(.*)"]);
 

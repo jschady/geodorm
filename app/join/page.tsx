@@ -128,7 +128,7 @@ function JoinPageContent() {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="bg-gray-800 rounded-2xl p-8 max-w-md w-full text-center">
           <CheckCircleIcon className="h-12 w-12 text-green-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-4">Welcome to the team!</h1>
+          <h1 className="text-2xl font-bold text-white mb-4">Welcome to the Dorm!</h1>
           <p className="text-gray-400 mb-6">
             You've successfully joined {validationData?.geofence?.name}. Redirecting to your dashboard...
           </p>

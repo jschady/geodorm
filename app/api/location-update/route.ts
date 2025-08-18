@@ -293,11 +293,8 @@ export async function POST(request: NextRequest) {
     console.log(`Location processing complete. Status updated: ${statusUpdated}`);
 
     return NextResponse.json({
-      success: true,
-      status_updated: statusUpdated,
-      geofence_id: updatedGeofenceId,
-      message: `Processed location for ${userGeofences.length} geofence(s)`
-    } as LocationUpdateResponse);
+      result: 'ok'
+    });
 
   } catch (error) {
     console.error('Unexpected error processing location:', error);

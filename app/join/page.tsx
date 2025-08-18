@@ -38,7 +38,7 @@ function JoinPageContent() {
     setError(null);
     
     try {
-      const response = await fetch(`/api/geofences/join/${encodeURIComponent(code)}`);
+      const response = await fetch(`/api/geofences/join?code=${encodeURIComponent(code)}`);
       const data = await response.json();
       
       if (response.ok) {

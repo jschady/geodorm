@@ -33,19 +33,6 @@
 
 ---
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Usage](#usage)
-    - [Testing](#testing)
-- [Features](#features)
-- [License](#license)
-
----
-
 ## Overview
 
 geodorm is an open-source developer toolset for building real-time, location-aware web applications with advanced geofence management, offline capabilities, and secure user authentication. It leverages modern frameworks like Next.js and Supabase to deliver a scalable, maintainable architecture.

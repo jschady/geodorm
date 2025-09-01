@@ -89,10 +89,6 @@ To enable automatic location tracking, GeoDorm integrates with the OverlandGPS m
 
 Once configured, the OverlandGPS app will automatically send location updates in the background, and your status in GeoDorm will update in real-time based on your location.
 
-## License
-
-Geodorm is protected under the [LICENSE](https://choosealicense.com/licenses) License. For more details, refer to the [LICENSE](https://choosealicense.com/licenses/) file.
-
 ---
 
 <div align="left"><a href="#top">⬆ Return</a></div>

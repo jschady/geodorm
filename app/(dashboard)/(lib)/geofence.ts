@@ -1,21 +1,10 @@
-/**
- * Geofence Calculation Utilities for Location-Based Status System
- * Implements distance calculations and hysteresis logic for status determination
- */
-
 import type { Geofence, GeofenceMember } from './types';
 
-/**
- * Coordinate pair for distance calculations
- */
 export interface Coordinates {
   latitude: number;
   longitude: number;
 }
 
-/**
- * Result of geofence boundary calculation
- */
 export interface GeofenceResult {
   inside_boundary: boolean;
   distance_meters: number;
@@ -27,17 +16,7 @@ export interface GeofenceResult {
   geofence_name: string;
 }
 
-/**
- * Calculate the great circle distance between two GPS coordinates using the Haversine formula
- * 
- * Formula: a = sin²(Δφ/2) + cos φ1 ⋅ cos φ2 ⋅ sin²(Δλ/2)
- *          c = 2 ⋅ atan2( √a, √(1−a) )
- *          d = R ⋅ c
- * 
- * @param point1 First GPS coordinate
- * @param point2 Second GPS coordinate
- * @returns Distance in meters
- */
+
 export function calculateDistance(point1: Coordinates, point2: Coordinates): number {
   const R = 6371000; // Earth's radius in meters
   
@@ -57,30 +36,25 @@ export function calculateDistance(point1: Coordinates, point2: Coordinates): num
   return R * c;
 }
 
-/**
- * Validate GPS coordinates are within valid ranges
- * @param coords Coordinates to validate
- * @returns True if valid, false otherwise
- */
+
 export function validateCoordinates(coords: Coordinates): boolean {
   const { latitude, longitude } = coords;
 
-  // Check if coordinates are numbers
   if (typeof latitude !== 'number' || typeof longitude !== 'number') {
     return false;
   }
 
-  // Check for invalid values (NaN, Infinity)
+
   if (!isFinite(latitude) || !isFinite(longitude)) {
     return false;
   }
 
-  // Check latitude range (-90 to 90)
+
   if (latitude < -90 || latitude > 90) {
     return false;
   }
 
-  // Check longitude range (-180 to 180)
+
   if (longitude < -180 || longitude > 180) {
     return false;
   }
@@ -88,19 +62,6 @@ export function validateCoordinates(coords: Coordinates): boolean {
   return true;
 }
 
-/**
- * Determine if status should change based on location, geofence, and hysteresis logic
- * 
- * Hysteresis prevents rapid status changes when near boundary:
- * - To enter: distance must be < (radius - hysteresis)
- * - To exit: distance must be > (radius + hysteresis)
- * - In between: maintain previous status
- * 
- * @param location Current GPS coordinate
- * @param geofence Geofence configuration
- * @param currentStatus Current location status
- * @returns Geofence result with status change determination
- */
 export function determineStatusChange(
   location: Coordinates,
   geofence: Geofence,
@@ -108,7 +69,6 @@ export function determineStatusChange(
 ): GeofenceResult {
   const startTime = performance.now();
 
-  // Validate coordinates
   if (!validateCoordinates(location)) {
     throw new Error('Invalid location coordinates');
   }
@@ -118,10 +78,8 @@ export function determineStatusChange(
     longitude: geofence.center_longitude
   };
 
-  // Calculate distance to geofence center
   const distance = calculateDistance(location, geofenceCenter);
 
-  // Calculate hysteresis boundaries
   const radius = geofence.radius_meters;
   const hysteresis = geofence.hysteresis_meters;
   const enterRadius = radius - hysteresis;  // Smaller radius to enter
@@ -131,21 +89,17 @@ export function determineStatusChange(
   let newStatus: 'IN_ROOM' | 'AWAY' | undefined;
   let hysteresisApplied = false;
 
-  // Determine status based on hysteresis logic
   if (distance <= enterRadius) {
-    // Clearly inside - should be IN_ROOM
     if (currentStatus === 'AWAY') {
       statusShouldChange = true;
       newStatus = 'IN_ROOM';
     }
   } else if (distance >= exitRadius) {
-    // Clearly outside - should be AWAY
     if (currentStatus === 'IN_ROOM') {
       statusShouldChange = true;
       newStatus = 'AWAY';
     }
   } else {
-    // In hysteresis zone - maintain previous status
     hysteresisApplied = true;
   }
 
@@ -163,14 +117,7 @@ export function determineStatusChange(
   };
 }
 
-/**
- * Process location update for multiple geofences
- * Returns array of results for each geofence the user is a member of
- * 
- * @param location Current GPS coordinate
- * @param userGeofences Array of geofence memberships with geofence data
- * @returns Array of geofence results
- */
+
 export function processMultipleGeofences(
   location: Coordinates,
   userGeofences: Array<GeofenceMember & { geofences: Geofence }>
@@ -186,19 +133,13 @@ export function processMultipleGeofences(
       results.push(result);
     } catch (error) {
       console.error(`Error processing geofence ${geofence.name}:`, error);
-      // Continue processing other geofences
     }
   }
 
   return results;
 }
 
-/**
- * Simple boundary check without hysteresis (for testing/debugging)
- * @param location GPS coordinate to check
- * @param geofence Geofence configuration
- * @returns Basic geofence result
- */
+
 export function isInsideGeofence(
   location: Coordinates,
   geofence: Geofence
@@ -214,14 +155,7 @@ export function isInsideGeofence(
   return { inside, distance };
 }
 
-/**
- * Create test location coordinates for debugging
- * @param centerLat Base latitude
- * @param centerLon Base longitude
- * @param offsetMeters Distance offset in meters
- * @param bearing Direction in degrees (0 = north, 90 = east)
- * @returns New coordinates offset by the specified distance and bearing
- */
+
 export function createTestLocation(
   centerLat: number,
   centerLon: number,
@@ -249,11 +183,6 @@ export function createTestLocation(
   };
 }
 
-/**
- * Get status summary for multiple geofence results
- * @param results Array of geofence results
- * @returns Summary of status changes
- */
 export function getStatusSummary(results: GeofenceResult[]): {
   totalGeofences: number;
   statusChanges: number;

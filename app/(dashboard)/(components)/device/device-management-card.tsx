@@ -29,7 +29,6 @@ export function DeviceManagementCard() {
   const [error, setError] = useState<string | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
 
-  // Fetch device data on component mount
   useEffect(() => {
     fetchDevice();
   }, []);
@@ -61,20 +60,16 @@ export function DeviceManagementCard() {
       setIsUpdating(true);
       setError(null);
 
-      // Optimistically update UI
       const newEnabled = !device.enabled;
       setDevice(prev => prev ? { ...prev, enabled: newEnabled } : prev);
 
-      // Call server action
       const result = await updateDeviceMapping(device.device_id, newEnabled);
 
       if (!result.success) {
-        // Revert optimistic update on error
         setDevice(prev => prev ? { ...prev, enabled: device.enabled } : prev);
         throw new Error(result.error);
       }
 
-      // Update with server response
       setDevice(result.data);
     } catch (error) {
       console.error('Failed to update device:', error);
@@ -93,19 +88,15 @@ export function DeviceManagementCard() {
       setIsUpdating(true);
       setError(null);
 
-      // Optimistically remove device from UI
       setDevice(null);
 
-      // Call server action to delete device
       const result = await deleteDeviceMapping();
 
       if (!result.success) {
-        // Revert optimistic update on error
         setDevice(device);
         throw new Error(result.error);
       }
 
-      // Device successfully deleted
       setDevice(null);
     } catch (error) {
       console.error('Failed to remove device:', error);
@@ -116,7 +107,6 @@ export function DeviceManagementCard() {
   };
 
   const handleDeviceRegistered = (deviceId: string) => {
-    // Refresh device data after successful registration
     fetchDevice();
     setShowRegistrationModal(false);
   };
@@ -228,7 +218,6 @@ export function DeviceManagementCard() {
           )}
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
             <p className="text-sm text-red-800">{error}</p>
@@ -237,7 +226,6 @@ export function DeviceManagementCard() {
 
         {device ? (
           <div className="space-y-4">
-            {/* Device Status */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 {React.createElement(getStatusIcon(device), {
@@ -252,13 +240,11 @@ export function DeviceManagementCard() {
               </div>
             </div>
 
-            {/* Device Info */}
             <div className="bg-gray-50 rounded-md p-3">
               <div className="text-xs text-gray-500 mb-1">Device ID</div>
               <div className="text-sm font-mono text-gray-900">{device.device_id}</div>
             </div>
 
-            {/* Controls */}
             <div className="flex space-x-3">
               <button
                 onClick={toggleDeviceEnabled}
@@ -290,7 +276,6 @@ export function DeviceManagementCard() {
         )}
       </div>
 
-      {/* Device Registration Modal */}
       <DeviceRegistrationModal
         isOpen={showRegistrationModal}
         onClose={() => setShowRegistrationModal(false)}

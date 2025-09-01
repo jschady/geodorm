@@ -6,21 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { nanoid } from 'nanoid';
 import type { GeofenceListItem, CreateGeofenceRequest, CreateGeofenceResponse, InviteValidationResponse } from '../types';
 
-/**
- * Centralized Geofence Server Actions
- * 
- * This module replaces all geofence-related API routes with Server Actions
- * for better performance, simpler error handling, and improved caching.
- * 
- * Replaces:
- * - GET /api/geofences
- * - POST /api/geofences  
- * - PUT /api/geofences/[id]
- * - DELETE /api/geofences/[id]
- * - POST /api/geofences/join
- */
 
-// Consistent response type for all server actions
 export type ServerActionResult<T> = {
   success: true;
   data: T;
@@ -30,25 +16,8 @@ export type ServerActionResult<T> = {
   details?: any;
 };
 
-/**
- * Get all geofences for the authenticated user
- * 
- * Replaces: GET /api/geofences
- * 
- * @returns Promise<ServerActionResult<GeofenceListItem[]>>
- * 
- * @example
- * ```tsx
- * // In a Server Component
- * const result = await getGeofences();
- * if (result.success) {
- *   return <GeofenceList geofences={result.data} />;
- * }
- * ```
- */
 export async function getGeofences(): Promise<ServerActionResult<GeofenceListItem[]>> {
   try {
-    // Verify authentication
     const { getToken, userId } = await auth();
     
     if (!userId) {
@@ -58,11 +27,9 @@ export async function getGeofences(): Promise<ServerActionResult<GeofenceListIte
       };
     }
 
-    // Create authenticated client
     const token = await getToken({ template: 'supabase' });
     const supabase = createServerClient(token);
 
-    // Query geofences where user is a member
     const { data: geofences, error: queryError } = await supabase
       .from('geofences')
       .select(`
@@ -87,7 +54,6 @@ export async function getGeofences(): Promise<ServerActionResult<GeofenceListIte
       };
     }
 
-    // Get member counts for each geofence
     const geofenceIds = geofences.map(g => g.id_geofence);
     
     const { data: memberCounts, error: countError } = await supabase
@@ -104,13 +70,11 @@ export async function getGeofences(): Promise<ServerActionResult<GeofenceListIte
       };
     }
 
-    // Count members per geofence
     const memberCountMap = memberCounts.reduce((acc, member) => {
       acc[member.id_geofence] = (acc[member.id_geofence] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    // Format response
     const result: GeofenceListItem[] = geofences.map(geofence => ({
       id_geofence: geofence.id_geofence,
       name: geofence.name,
@@ -132,24 +96,8 @@ export async function getGeofences(): Promise<ServerActionResult<GeofenceListIte
   }
 }
 
-/**
- * Get detailed information for a specific geofence
- * 
- * @param geofenceId - The ID of the geofence to fetch
- * @returns Promise<ServerActionResult<GeofenceDetails>>
- * 
- * @example
- * ```tsx
- * // In a Server Component
- * const result = await getGeofenceDetails(geofenceId);
- * if (result.success) {
- *   return <GeofenceDetails geofence={result.data} />;
- * }
- * ```
- */
 export async function getGeofenceDetails(geofenceId: string): Promise<ServerActionResult<any>> {
   try {
-    // Verify authentication
     const { getToken, userId } = await auth();
     
     if (!userId) {
@@ -159,11 +107,9 @@ export async function getGeofenceDetails(geofenceId: string): Promise<ServerActi
       };
     }
 
-    // Create authenticated client
     const token = await getToken({ template: 'supabase' });
     const supabase = createServerClient(token);
 
-    // Get geofence with user's role
     const { data: geofence, error: geofenceError } = await supabase
       .from('geofences')
       .select(`
@@ -185,7 +131,6 @@ export async function getGeofenceDetails(geofenceId: string): Promise<ServerActi
       };
     }
 
-    // Add role to geofence object
     const geofenceWithRole = {
       ...geofence,
       role: geofence.geofence_members[0]?.role || 'member'
@@ -203,28 +148,8 @@ export async function getGeofenceDetails(geofenceId: string): Promise<ServerActi
   }
 }
 
-/**
- * Create a new geofence
- * 
- * Replaces: POST /api/geofences
- * 
- * @param formData - Form data containing geofence information
- * @returns Promise<ServerActionResult<CreateGeofenceResponse>>
- * 
- * @example
- * ```tsx
- * // In a form action
- * <form action={async (formData) => {
- *   const result = await createGeofence(formData);
- *   if (result.success) {
- *     // Handle success
- *   }
- * }}>
- * ```
- */
 export async function createGeofence(formData: FormData): Promise<ServerActionResult<CreateGeofenceResponse>> {
   try {
-    // Verify authentication
     const { getToken, userId } = await auth();
     
     if (!userId) {
@@ -234,20 +159,17 @@ export async function createGeofence(formData: FormData): Promise<ServerActionRe
       };
     }
 
-    // Extract and validate form data
     const name = formData.get('name') as string;
     const centerLatStr = formData.get('center_latitude') as string;
     const centerLngStr = formData.get('center_longitude') as string;
     const radiusStr = formData.get('radius_meters') as string;
     const hysteresisStr = formData.get('hysteresis_meters') as string;
 
-    // Parse numeric values
     const center_latitude = parseFloat(centerLatStr);
     const center_longitude = parseFloat(centerLngStr);
     const radius_meters = parseInt(radiusStr);
     const hysteresis_meters = hysteresisStr ? parseInt(hysteresisStr) : Math.max(5, Math.round(Math.min(radius_meters * 0.1, 50)));
 
-    // Validate required fields
     if (!name?.trim()) {
       return {
         success: false,
@@ -262,7 +184,6 @@ export async function createGeofence(formData: FormData): Promise<ServerActionRe
       };
     }
 
-    // Validate coordinate ranges
     if (Math.abs(center_latitude) > 90 || Math.abs(center_longitude) > 180) {
       return {
         success: false,
@@ -270,7 +191,6 @@ export async function createGeofence(formData: FormData): Promise<ServerActionRe
       };
     }
 
-    // Validate radius and hysteresis
     if (radius_meters < 10 || radius_meters > 1000) {
       return {
         success: false,
@@ -285,20 +205,17 @@ export async function createGeofence(formData: FormData): Promise<ServerActionRe
       };
     }
 
-    // Create authenticated client
     const token = await getToken({ template: 'supabase' });
     const supabase = createServerClient(token);
 
-    // Generate unique invite code
     const invite_code = nanoid(10);
 
-    // Ensure user exists in our users table
     const { error: userUpsertError } = await supabase
       .from('users')
       .upsert(
         { 
           id_user: userId,
-          email: '', // Will be populated by webhook
+          email: '',
           updated_at: new Date().toISOString()
         },
         { 
@@ -316,7 +233,6 @@ export async function createGeofence(formData: FormData): Promise<ServerActionRe
       };
     }
 
-    // Create geofence
     const { data: geofence, error: createError } = await supabase
       .from('geofences')
       .insert({
@@ -334,8 +250,7 @@ export async function createGeofence(formData: FormData): Promise<ServerActionRe
     if (createError) {
       console.error('Failed to create geofence:', createError);
       
-      // Check for specific error types
-      if (createError.code === '23505') { // Unique constraint violation
+      if (createError.code === '23505') {
         return {
           success: false,
           error: 'A geofence with this invite code already exists. Please try again.'
@@ -349,7 +264,6 @@ export async function createGeofence(formData: FormData): Promise<ServerActionRe
       };
     }
 
-    // Format response
     const response: CreateGeofenceResponse = {
       id_geofence: geofence.id_geofence,
       name: geofence.name,
@@ -361,7 +275,6 @@ export async function createGeofence(formData: FormData): Promise<ServerActionRe
       created_at: geofence.created_at
     };
 
-    // Revalidate dashboard to show new geofence
     revalidatePath('/dashboard');
 
     return { success: true, data: response };
@@ -376,18 +289,8 @@ export async function createGeofence(formData: FormData): Promise<ServerActionRe
   }
 }
 
-/**
- * Update an existing geofence
- * 
- * Replaces: PUT /api/geofences/[id]
- * 
- * @param geofenceId - The ID of the geofence to update
- * @param formData - Form data with updated geofence information
- * @returns Promise<ServerActionResult<any>>
- */
 export async function updateGeofence(geofenceId: string, formData: FormData): Promise<ServerActionResult<any>> {
   try {
-    // Verify authentication
     const { getToken, userId } = await auth();
     
     if (!userId) {
@@ -397,11 +300,9 @@ export async function updateGeofence(geofenceId: string, formData: FormData): Pr
       };
     }
 
-    // Create authenticated client
     const token = await getToken({ template: 'supabase' });
     const supabase = createServerClient(token);
 
-    // Verify ownership
     const { data: geofence, error: geofenceError } = await supabase
       .from('geofences')
       .select('id_user')
@@ -422,13 +323,11 @@ export async function updateGeofence(geofenceId: string, formData: FormData): Pr
       };
     }
 
-    // Extract form data
     const name = formData.get('name') as string;
     const centerLatStr = formData.get('center_latitude') as string;
     const centerLngStr = formData.get('center_longitude') as string;
     const radiusStr = formData.get('radius_meters') as string;
 
-    // Build update object with only provided fields
     const updates: any = {};
     
     if (name?.trim()) {
@@ -457,7 +356,6 @@ export async function updateGeofence(geofenceId: string, formData: FormData): Pr
       }
     }
 
-    // Update geofence
     const { data: updatedGeofence, error: updateError } = await supabase
       .from('geofences')
       .update(updates)
@@ -474,7 +372,6 @@ export async function updateGeofence(geofenceId: string, formData: FormData): Pr
       };
     }
 
-    // Revalidate affected paths
     revalidatePath('/dashboard');
     revalidatePath(`/dashboard/${geofenceId}`);
 
@@ -490,28 +387,8 @@ export async function updateGeofence(geofenceId: string, formData: FormData): Pr
   }
 }
 
-/**
- * Delete a geofence
- * 
- * Replaces: DELETE /api/geofences/[id]
- * 
- * @param geofenceId - The ID of the geofence to delete
- * @returns Promise<ServerActionResult<void>>
- * 
- * @example
- * ```tsx
- * // In a component
- * const handleDelete = async () => {
- *   const result = await deleteGeofence(geofenceId);
- *   if (result.success) {
- *     router.push('/dashboard');
- *   }
- * };
- * ```
- */
 export async function deleteGeofence(geofenceId: string): Promise<ServerActionResult<void>> {
   try {
-    // Verify authentication
     const { getToken, userId } = await auth();
     
     if (!userId) {
@@ -521,11 +398,9 @@ export async function deleteGeofence(geofenceId: string): Promise<ServerActionRe
       };
     }
 
-    // Create authenticated client
     const token = await getToken({ template: 'supabase' });
     const supabase = createServerClient(token);
 
-    // Verify ownership
     const { data: geofence, error: geofenceError } = await supabase
       .from('geofences')
       .select('id_user')
@@ -547,7 +422,6 @@ export async function deleteGeofence(geofenceId: string): Promise<ServerActionRe
       };
     }
 
-    // Delete geofence (cascade will handle members)
     const { error: deleteError } = await supabase
       .from('geofences')
       .delete()
@@ -562,7 +436,6 @@ export async function deleteGeofence(geofenceId: string): Promise<ServerActionRe
       };
     }
 
-    // Revalidate dashboard to remove deleted geofence
     revalidatePath('/dashboard');
 
     return { success: true, data: undefined };
@@ -577,21 +450,6 @@ export async function deleteGeofence(geofenceId: string): Promise<ServerActionRe
   }
 }
 
-/**
- * Validate an invite code without joining
- * 
- * @param inviteCode - The invite code to validate
- * @returns Promise<ServerActionResult<InviteValidationResponse>>
- * 
- * @example
- * ```tsx
- * // In a component
- * const result = await validateInvite(inviteCode);
- * if (result.success && result.data.valid) {
- *   // Show geofence preview
- * }
- * ```
- */
 export async function validateInvite(inviteCode: string): Promise<ServerActionResult<any>> {
   try {
     if (!inviteCode?.trim()) {
@@ -601,10 +459,8 @@ export async function validateInvite(inviteCode: string): Promise<ServerActionRe
       };
     }
 
-    // Create unauthenticated client for validation (no auth required to validate)
     const supabase = createServerClient(null);
 
-    // Find geofence by invite code with owner info
     const { data: geofence, error: geofenceError } = await supabase
         .from('geofences')
         .select(`
@@ -626,7 +482,6 @@ export async function validateInvite(inviteCode: string): Promise<ServerActionRe
       };
     }
 
-    // Get member count
     const { data: members, error: membersError } = await supabase
       .from('geofence_members')
       .select('id_user')
@@ -659,29 +514,8 @@ export async function validateInvite(inviteCode: string): Promise<ServerActionRe
   }
 }
 
-/**
- * Join a geofence using an invite code
- * 
- * Replaces: POST /api/geofences/join
- * 
- * @param inviteCode - The invite code for the geofence to join
- * @returns Promise<ServerActionResult<{ geofence: any }>>
- * 
- * @example
- * ```tsx
- * // In a form action
- * <form action={async (formData) => {
- *   const inviteCode = formData.get('invite_code') as string;
- *   const result = await joinGeofence(inviteCode);
- *   if (result.success) {
- *     // Handle success
- *   }
- * }}>
- * ```
- */
 export async function joinGeofence(inviteCode: string): Promise<ServerActionResult<{ geofence: any }>> {
   try {
-    // Verify authentication
     const { getToken, userId } = await auth();
     
     if (!userId) {
@@ -698,17 +532,15 @@ export async function joinGeofence(inviteCode: string): Promise<ServerActionResu
       };
     }
 
-    // Create authenticated client
     const token = await getToken({ template: 'supabase' });
     const supabase = createServerClient(token);
 
-    // Ensure user exists in our users table
     const { error: userUpsertError } = await supabase
       .from('users')
       .upsert(
         { 
           id_user: userId,
-          email: '', // Will be populated by webhook
+          email: '',
           updated_at: new Date().toISOString()
         },
         { 
@@ -726,7 +558,6 @@ export async function joinGeofence(inviteCode: string): Promise<ServerActionResu
       };
     }
 
-    // Find geofence by invite code
     const { data: geofence, error: geofenceError } = await supabase
       .from('geofences')
       .select('id_geofence, name, id_user')
@@ -740,7 +571,6 @@ export async function joinGeofence(inviteCode: string): Promise<ServerActionResu
       };
     }
 
-    // Check if user is already a member
     const { data: existingMember, error: memberCheckError } = await supabase
       .from('geofence_members')
       .select('id_user')
@@ -764,7 +594,6 @@ export async function joinGeofence(inviteCode: string): Promise<ServerActionResu
       };
     }
 
-    // Add user as member
     const { error: insertError } = await supabase
       .from('geofence_members')
       .insert({
@@ -782,7 +611,6 @@ export async function joinGeofence(inviteCode: string): Promise<ServerActionResu
       };
     }
 
-    // Revalidate dashboard to show new geofence
     revalidatePath('/dashboard');
 
     return { 

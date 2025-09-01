@@ -62,17 +62,24 @@ To enable automatic location tracking, GeoDorm integrates with the OverlandGPS m
 
 **Setup Instructions**
 
-1. **Install OverlandGPS**: Download and install the OverlandGPS application on your mobile device.
+1. **Install Overland**: Download and install the Overland application on your mobile device.
 2. **Find Your Device ID**:
-- Open the OverlandGPS app.
+- Open the Overland app.
 - Go to Settings.
-- Look for "Device ID" or "Device Identifier" and copy this value.
+- Click on Server URL.
+- Create a Device ID.
 3. **Register in GeoDorm**:
 - Log in to your GeoDorm dashboard.
 - Navigate to the "GPS Device" management card.
-- Click "Register Device" and paste the Device ID you copied from the OverlandGPS app.
+- Click "Register Device" and paste the Device ID you created from the Overland app.
 4. **Configure OverlandGPS**:
-- In the OverlandGPS app settings, set the Endpoint URL to point to your GeoDorm instance's location update API: https://geodorm.vercel.app/api/location-update.
+- In the OverlandGPS app settings, set the Endpoint URL to point to https://geodorm.vercel.app/api/location-update.
+- Set "Tracking Enabled" to "On"
+- Set "Continuous Tracking Mode" to "Standard"
+- Set "Desired" Accuracy" to "10m"
+- Set "Logging Mode" to "Only Latest"
+- Set "Min Time Between Points" to "1s"
+- Finally on the Tracker page configure the "Send Interval" to 10 minutes
 
 Once configured, the OverlandGPS app will automatically send location updates in the background, and your status in GeoDorm will update in real-time based on your location.
 

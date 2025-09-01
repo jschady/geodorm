@@ -6,8 +6,6 @@
 
 # GEODORM
 
-<em>Seamless Location Control for Smarter Communities</em>
-
 <!-- BADGES -->
 <img src="https://img.shields.io/github/license/jschady/geodorm?style=flat&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
 <img src="https://img.shields.io/github/last-commit/jschady/geodorm?style=flat&logo=git&logoColor=white&color=0080ff" alt="last-commit">

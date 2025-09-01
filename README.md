@@ -41,12 +41,12 @@ geodorm is an open-source developer toolset for building real-time, location-awa
 
 This project streamlines the development of spatially aware apps by providing:
 
-- 🧭 **Real-time Status Tracking:** Seamlessly monitor user presence and device locations with instant updates.
-- 🛡️ **Secure Authentication & Authorization:** Route-based middleware ensures safe access control.
-- 🌐 **Progressive Web App Support:** Offline functionality and optimized asset delivery for a smooth user experience.
-- 🎯 **Robust Geofence Management:** Create, edit, share, and manage geofences with real-time collaboration.
-- 🔧 **Modular Serverless Architecture:** Server actions replace traditional API routes for improved performance and maintainability.
-- 📦 **Type-Safe Development Environment:** Consistent, reliable builds with TypeScript and dependency lockfiles.
+- **Real-time Status Tracking:** Seamlessly monitor user presence and device locations with instant updates.
+- **Secure Authentication & Authorization:** Route-based middleware ensures safe access control.
+- **Progressive Web App Support:** Offline functionality and optimized asset delivery for a smooth user experience.
+- **Robust Geofence Management:** Create, edit, share, and manage geofences with real-time collaboration.
+- **Modular Serverless Architecture:** Server actions replace traditional API routes for improved performance and maintainability.
+- **Type-Safe Development Environment:** Consistent, reliable builds with TypeScript and dependency lockfiles.
 
 ---
 

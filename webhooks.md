@@ -1,4 +1,4 @@
-# Clerk Webhooks for Tiger Dorm
+# Clerk Webhooks for Geo Dorm
 
 This document outlines all the Clerk webhooks required for syncing user data between Clerk's authentication service and our Supabase database.
 

@@ -17,14 +17,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
-  title: "Tiger Dorm Dashboard",
+  title: "Geo Dorm Dashboard",
   description: "Real-time status tracking dashboard for dorm roommates",
-  applicationName: "Tiger Dorm",
+  applicationName: "Geo Dorm",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Tiger Dorm",
+    title: "Geo Dorm",
     startupImage: [
       {
         url: "/icon-512x512.png?v=2",

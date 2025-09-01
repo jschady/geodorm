@@ -20,7 +20,7 @@ export default async function Home() {
           {/* Logo/Brand */}
           <div className="flex items-center flex-shrink-0 gap-2 text-black">
             <span className="text-2xl">🏠</span>
-            <span className="font-semibold text-xl tracking-tight">Tiger Dorm</span>
+            <span className="font-semibold text-xl tracking-tight">Geo Dorm</span>
           </div>
           
           {/* Center Navigation - Empty for now */}

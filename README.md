@@ -28,7 +28,7 @@
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/jschady/tigerdorm && cd tigerdorm && npm install
+git clone https://github.com/jschady/geodorm && cd geodorm && npm install
 ```
 
 **Supabase Setup:**

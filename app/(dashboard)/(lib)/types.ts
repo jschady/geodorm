@@ -1,4 +1,4 @@
-// TypeScript definitions for the Tiger Dorm Dashboard application
+// TypeScript definitions for the Geo Dorm Dashboard application
 
 // Member interface representing a dorm roommate
 export interface Member {

@@ -248,7 +248,7 @@ function getOfflineAuthPage(): Response {
     `<!DOCTYPE html>
     <html lang="en">
     <head>
-      <title>TigerDorm - Authentication Required</title>
+      <title>Geo Dorm - Authentication Required</title>
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="theme-color" content="#4f46e5">
       <style>
@@ -383,7 +383,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'TigerDorm', options)
+    self.registration.showNotification(data.title || 'GeoDorm', options)
   );
 });
 

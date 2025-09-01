@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Tiger Dorm Dashboard",
-  "short_name": "Tiger Dorm",
+  "name": "Geo Dorm Dashboard",
+  "short_name": "Geo Dorm",
   "description": "Real-time status tracking dashboard for dorm roommates - see who's in the room, studying, at the gym, sleeping, or out and about",
   "start_url": "/",
   "display": "standalone",

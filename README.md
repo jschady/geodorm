@@ -1,4 +1,4 @@
-# 🏠 Tiger Dorm  Dashboard
+# 🏠 Geo Dorm  Dashboard
 
 > A beautiful, real-time status tracking PWA for dorm roommates built with Next.js 15+ and modern architecture
 
